@@ -43,11 +43,15 @@
                 label="Select a Staff Member"
                 variant="outlined"
                 prepend-inner-icon="mdi-account-search"
+                :readonly="isTeacher && !isEdit"
                 :loading="isLoading"
                 placeholder="Search by name..."
                 class="mb-4"
                 style="max-width: 450px;"
+                :hint="isTeacher && !isEdit ? 'Locked to your account' : ''"
+                persistent-hint
               >
+
                 <template v-slot:item="{ props, item }">
                   <v-list-item 
                     v-bind="props" 
@@ -196,21 +200,26 @@
   }
 
   // 4. Watchers & Lifecycle
-    watch(() => props.modelValue, (isOpen) => {
-      if (isOpen) {
-        fetchTeachers() // Your existing function
-        fetchPrograms() // New function
-      }
-    })
+watch(() => props.modelValue, async (isOpen) => {
+  if (isOpen) {
+    await Promise.all([fetchTeachers(), fetchPrograms()])
+    localEvent.value = { ...props.eventData }
 
-  watch(() => props.eventData, (newVal) => {
-    localEvent.value = { ...newVal }
-    
-    // 1. ADD SAFETY: Check if 'user' and 'user.value' exist before accessing .id
-    if (isTeacher.value && !props.isEdit && user?.value) {
-      localEvent.value.teacher_id = user.value.id 
+    // UPDATE: Allow both 'teacher' and 'operator' roles to trigger the autofill
+    const canAutofill = isTeacher.value || user.value?.role === 'operator';
+
+    if (canAutofill && !props.isEdit && user?.value) {
+      const currentTeacher = teacherList.value.find(t => t.username === user.value.username)
+      
+      if (currentTeacher) {
+        localEvent.value.teacher_id = currentTeacher.id
+        console.log('Successfully Mapped ID:', localEvent.value.teacher_id)
+      } else {
+        console.warn('Username not found in teacherList:', user.value.username)
+      }
     }
-  }, { deep: true, immediate: true })
+  }
+}, { immediate: true })
 
   const save = async () => {
   const config = useRuntimeConfig()

@@ -43,7 +43,7 @@
         <v-spacer></v-spacer>
 
         <v-btn 
-          v-if="['schedules'].includes(currentView) && canManageUsers"
+          v-if="['schedules', 'reports'].includes(currentView)"
           color="success" 
           prepend-icon="mdi-file-export" 
           variant="tonal"

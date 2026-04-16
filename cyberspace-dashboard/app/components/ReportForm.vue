@@ -11,10 +11,10 @@
       <v-card-text class="pa-6">
         <v-row density="comfortable">
           <v-col cols="12" sm="6">
-            <v-text-field v-model="localReport.program" label="Program" variant="outlined" readonly bg-color="grey-lighten-4" prepend-inner-icon="mdi-school" hide-details="auto" class="mb-4"></v-text-field>
+            <v-text-field v-model="localReport.program" label="Program" variant="outlined" readonly bg-color="grey-darken-3" prepend-inner-icon="mdi-school" hide-details="auto" class="mb-4"></v-text-field>
           </v-col>
           <v-col cols="12" sm="6">
-            <v-text-field v-model="localReport.module" label="Module" variant="outlined" readonly bg-color="grey-lighten-4" prepend-inner-icon="mdi-book-open-variant" hide-details="auto" class="mb-4"></v-text-field>
+            <v-text-field v-model="localReport.module" label="Module" variant="outlined" readonly bg-color="grey-darken-3" prepend-inner-icon="mdi-book-open-variant" hide-details="auto" class="mb-4"></v-text-field>
           </v-col>
 
           <v-col cols="12" sm="6">
@@ -31,13 +31,13 @@
           <v-divider class="my-2 w-100"></v-divider>
 
           <v-col cols="12" sm="4">
-            <v-text-field v-model="localReport.date" label="Date" type="date" variant="outlined" hide-details="auto" class="mb-4"></v-text-field>
+            <v-text-field v-model="localReport.date" label="Date" type="date" bg-color="grey-darken-3" variant="outlined" hide-details="auto" class="mb-4"></v-text-field>
           </v-col>
           <v-col cols="12" sm="4">
-            <v-text-field v-model="localReport.time_start" label="Start" type="time" variant="outlined" hide-details="auto" class="mb-4"></v-text-field>
+            <v-text-field v-model="localReport.time_start" label="Start" type="time" bg-color="grey-darken-3" variant="outlined" hide-details="auto" class="mb-4"></v-text-field>
           </v-col>
           <v-col cols="12" sm="4">
-            <v-text-field v-model="localReport.time_end" label="End" type="time" variant="outlined" hide-details="auto" class="mb-4"></v-text-field>
+            <v-text-field v-model="localReport.time_end" label="End" type="time" bg-color="grey-darken-3" variant="outlined" hide-details="auto" class="mb-4"></v-text-field>
           </v-col>
 
           <v-col cols="12">

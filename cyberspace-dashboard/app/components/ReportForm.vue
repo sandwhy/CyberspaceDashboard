@@ -68,7 +68,7 @@
           </v-col>
 
           <v-col cols="12">
-            <v-textarea v-model="localReport.summary" label="Session Summary" variant="outlined" placeholder="What did the students achieve today?" rows="3" prepend-inner-icon="mdi-text-box-check" hide-details="auto"></v-textarea>
+            <v-textarea v-model="localReport.notes" label="Session Notes" variant="outlined" placeholder="What did the students achieve today?" rows="3" prepend-inner-icon="mdi-text-box-check" hide-details="auto"></v-textarea>
           </v-col>
         </v-row>
       </v-card-text>
@@ -136,7 +136,7 @@
         invoice_number: 'INV-2026-',
         total_student_attendance: 0,
         students_name: '',
-        summary: ''
+        notes: ''
       }
     }
   }, { deep: true, immediate: true })
@@ -178,7 +178,7 @@
         invoice_number: 'INV-2026-', // Pre-fill prefix for convenience
         total_student_attendance: 0,
         students_name: '',
-        summary: ''
+        notes: ''
       }
       imagePreview.value = null
     }

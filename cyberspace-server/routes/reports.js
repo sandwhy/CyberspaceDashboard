@@ -42,7 +42,7 @@ router.post('/', authenticateToken, upload.single('image'), (req, res) => {
     const { 
         schedule_id, teacher_id, invoice_number, date, 
         time_start, time_end, program, module, 
-        total_student_attendance, students_name, summary 
+        total_student_attendance, students_name, notes, image_url 
     } = req.body;
 
     const resolvedTeacherId = req.user.role === 'teacher' ? req.user.id : (teacher_id || req.user.id);
@@ -52,15 +52,25 @@ router.post('/', authenticateToken, upload.single('image'), (req, res) => {
         INSERT INTO reports (
             schedule_id, teacher_id, invoice_number, date, 
             time_start, time_end, program, module, 
-            total_student_attendance, students_name, summary
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            total_student_attendance, students_name, notes, image_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const values = [
-        schedule_id || null, resolvedTeacherId, invoice_number, date, 
-        time_start, time_end, program, module, 
-        total_student_attendance ?? 0, students_name, summary
+        schedule_id || null, 
+        resolvedTeacherId, 
+        invoice_number, 
+        date, 
+        time_start, 
+        time_end, 
+        program, 
+        module, 
+        total_student_attendance ?? 0, 
+        students_name, 
+        notes, 
+        image_url || null // Added fallback
     ];
+    console.log('going here 1, stuff:', values)
 
     db.query(insertQuery, values, (err, result) => {
         if (err) return res.status(500).json({ message: 'Database error', error: err });
@@ -106,7 +116,7 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
         const { 
             invoice_number, date, time_start, time_end, 
             program, module, total_student_attendance, 
-            students_name, summary, schedule_id, image_url
+            students_name, notes, schedule_id, image_url
         } = req.body;
 
         let finalImageUrl = report.image_url;
@@ -127,7 +137,7 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
             UPDATE reports 
             SET invoice_number=?, date=?, time_start=?, time_end=?, 
                 program=?, module=?, total_student_attendance=?, 
-                students_name=?, summary=?, image_url=? 
+                students_name=?, notes=?, image_url=? 
             WHERE id=?
         `;
         
@@ -140,7 +150,7 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
             module || report.module,
             total_student_attendance ?? report.total_student_attendance,
             students_name ?? report.students_name,
-            summary ?? report.summary,
+            notes ?? report.notes,
             image_url ?? finalImageUrl,
             reportId
         ];

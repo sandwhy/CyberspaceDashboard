@@ -1,0 +1,25 @@
+# --- OS/IDE Files ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Dependencies (Covers both folders) ---
+**/node_modules/
+**/package-lock.json
+
+# --- Environment & Secrets ---
+**/.env
+
+# --- Backend Specifics ---
+cyberspace-server/uploads/
+cyberspace-server/*.log
+
+# --- Frontend Specifics (Nuxt/Vue) ---
+cyberspace-dashboard/.nuxt/
+cyberspace-dashboard/.output/
+cyberspace-dashboard/dist/
+
+# --- Temporary/Misc ---
+*.tmp
+*.bak

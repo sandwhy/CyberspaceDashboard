@@ -137,10 +137,9 @@
 
           <template v-slot:item.actions="{ item }">
             <div class="d-flex justify-center ga-1">
-              <v-btn v-if="currentView === 'schedules'" icon="mdi-eye" size="x-small" variant="text" color="info" @click="goToCalendar(item)"></v-btn>
-              <v-btn v-if="currentView === 'schedules'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="editSchedule(item)"></v-btn>
-              <v-btn v-if="currentView === 'schedules'" icon="mdi-file-document-edit-outline" size="x-small" variant="text" color="success" @click="manageReport(item)"></v-btn>
-              
+              <v-btn v-if="currentView === 'schedules'" icon="mdi-eye" size="x-small" variant="text" title="View in Calendar" color="info" @click="goToCalendar(item)"></v-btn>
+              <v-btn v-if="currentView === 'schedules'" icon="mdi-pencil" size="x-small" variant="text" title="Edit Event" color="warning" @click="editSchedule(item)"></v-btn>
+              <v-btn v-if="currentView === 'schedules'" icon="mdi-file-document-edit-outline" size="x-small" title="Reports" variant="text" :color="hasReport(item) ? 'grey' : 'success'" :disabled="hasReport(item)" @click="manageReport(item)" ></v-btn>
               <v-btn v-if="currentView === 'reports'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="editReport(item)"></v-btn>
               <v-btn v-if="currentView === 'users'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="editUser(item)"></v-btn>
             </div>
@@ -404,11 +403,17 @@
     const token = useCookie('token')
 
     try {
+      if (currentView.value === 'schedules') {
+        const reportRes = await fetch(`${config.public.apiBase}/api/reports`, {
+          headers: { 'Authorization': `Bearer ${token.value}` } 
+        })
+        data.reports = await reportRes.json()
+      }
+
       const res = await fetch(`${config.public.apiBase}/api/${currentView.value}`, {
         headers: { 'Authorization': `Bearer ${token.value}` } 
       })
       data[currentView.value] = await res.json()
-      console.log('data', data)
     } catch (err) {
       console.error("Fetch error:", err)
     } finally {
@@ -416,8 +421,13 @@
     }
   }
 
-  // 7. METHODS (UI & Navigation)
 
+  // 7. METHODS (UI & Navigation)
+  function hasReport(schedule) {
+    // data.reports is your reactive store of all reports
+    return data.reports.some(r => r.schedule_id === schedule.id)
+  }
+  
   function goToCalendar(item) {
     if (!item.date) return
     router.push({ path: '/dashboard/schedules', query: { focus: item.date.split('T')[0] } })

@@ -5,7 +5,15 @@
         <v-icon>mdi-chevron-left</v-icon>
       </v-btn>
 
-      <v-btn variant="outlined" class="mr-2" @click="goToToday">Today</v-btn>
+      <v-btn 
+        variant="elevated" 
+        color="primary" 
+        class="mr-2 text-none" 
+        prepend-icon="mdi-calendar-today"
+        @click="goToToday"
+      >
+        Today
+      </v-btn>
 
       <v-menu v-model="datepickerOpen" :close-on-content-click="false">
         <template #activator="{ props }">
@@ -53,29 +61,41 @@
         v-model="value"
         :type="type"
         :events="events"
-        :view-mode="type"
         :weekdays="weekday"
         :first-interval="8"
         :interval-count="12"    
-        :interval-height="60"    
-        :event-color="getEventColor"
-        @click:event="showEventDetail"
-        :close-on-content-click="false"
-        offset="5"
-        location="end"
-        class="border"
+        :interval-height="70"    
+        :event-ripple="true"
+        event-border-radius="8"
+        class="border-none"
         style="height: 100%"
+        @click:event="showEventDetail"
       >
         <template #event="{ event }">
-          <div class="pa-2 px-2 py-1 d-flex flex-column" style="font-size: 0.85rem; line-height: 1.2;">
-            <div class="text-caption font-weight-light" style="font-size: 0.7rem;">
-              {{ formatTime(event.start) }} - {{ formatTime(event.end) }}
+          <div class="pa-1 h-100 d-flex flex-column" style="font-size: 0.75rem; overflow: hidden;">
+            <div class="d-flex align-center justify-space-between mb-1 opacity-80" style="font-size: 0.8rem;">
+              <span class="font-weight-bold">
+                {{ formatTime(event.start) }} - {{ formatTime(event.end) }}
+              </span>
+              <v-icon size="x-small">mdi-clock-outline</v-icon>
             </div>
-            <v-divider class="my-1" thickness="1" color="white"></v-divider>
-            <div class="font-weight-bold text-truncate">Teacher: {{ event.teacher_name }}</div>
-            <div class="text-truncate">{{ event.title }}</div>
+
+            <div class="text-truncate font-weight-black text-uppercase" style="letter-spacing: 0.5px; line-height: 1.1">
+              {{ event.title }}
+            </div>
+
+            <v-spacer></v-spacer>
+
+            <div class="d-flex align-center mt-1 pt-1 border-t-thin border-opacity-25">
+              <v-avatar size="16" class="mr-1 bg-white-opacity-20">
+                <v-icon size="10">mdi-account</v-icon>
+              </v-avatar>
+              <span class="text-truncate font-weight-medium">
+                {{ event.teacher_name?.split(' ')[0] }}
+              </span>
+            </div>
           </div>
-        </template>   
+        </template>
       </v-calendar>
     </v-sheet>
 
@@ -236,7 +256,12 @@
   }
 
   function getEventColor(event) {
-    return event.color || '#1976D2'
+    // Generate a consistent color based on teacher ID or Program if no color exists
+    if (event.color) return event.color
+    
+    const colors = ['#5C6BC0', '#26A69A', '#66BB6A', '#FFA726', '#EF5350', '#AB47BC']
+    const index = (event.teacher_id || 0) % colors.length
+    return colors[index]
   }
 
   // 6. LIFECYCLE

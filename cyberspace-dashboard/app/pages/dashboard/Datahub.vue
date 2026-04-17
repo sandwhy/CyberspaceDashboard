@@ -155,79 +155,13 @@
           </template>
       </v-data-table>
 
-      <!-- <v-data-iterator
-        :items="displayedItems"
-        :search="search"
-        :loading="isLoading"
-        :headers="activeHeaders"
-        class="bg-grey-darken-4 pa-4" 
-        v-if="!isTableView"
-      >
-        <template v-slot:default="{ items }">
-          <v-container>
-            <v-card 
-              v-for="item in items" 
-              :key="item.raw.id" 
-              class="mb-3 rounded-lg overflow-hidden bg-grey-darken-3" 
-              elevation="1"
-              border="b"
-            >
-              <v-row align="center" class="pa-4">
-                <v-col cols="12" md="1" class="text-body-2 font-weight-medium">
-                  {{ item.raw.sort_order }}
-                </v-col>
-
-                <v-col cols="12" md="1">
-                  <v-avatar rounded="lg" size="48" class="bg-grey-lighten-3">
-                    <v-img :src="item.raw.image_url || 'http://localhost:5000/uploads/placeholder-robot.png'"></v-img>
-                  </v-avatar>
-                </v-col>
-
-                <v-col cols="12" md="2" class="text-subtitle-2 font-weight-bold">
-                  {{ item.raw.title }}
-                </v-col>
-
-                <v-col cols="12" md="2" class="text-body-2 text-grey-darken-2">
-                  {{ item.raw.age_range }}
-                </v-col>
-
-                <v-col cols="12" md="3" class="text-body-2 text-truncate text-grey-darken-1">
-                  {{ item.raw.description }}
-                </v-col>
-
-                <v-col cols="12" md="1">
-                  <v-chip
-                    size="x-small"
-                    :color="item.raw.is_active ? 'success' : 'error'"
-                    variant="flat"
-                    class="text-uppercase font-weight-bold"
-                  >
-                    {{ item.raw.is_active ? 'Active' : 'Inactive' }}
-                  </v-chip>
-                </v-col>
-
-                <v-col cols="12" md="2" class="d-flex justify-center ga-2">
-                  <v-btn 
-                    size="small" 
-                    variant="text" 
-                    color="info" 
-                    class="text-none"
-                    @click="editProgram(item.raw)" 
-                    title="Edit Program"
-                  >
-                    Edit  
-                  </v-btn>
-                </v-col>
-              </v-row>
-            </v-card>
-          </v-container>
-        </template>
-      </v-data-iterator> -->
 <v-data-iterator
         :items="displayedItems"
         :search="search"
         :loading="isLoading"
         :headers="activeHeaders"
+        :items-per-page="-1"
+        :sort-by="[{ key: 'id', order: 'asc' }]"
         class="bg-grey-darken-4 pa-4" 
         v-if="!isTableView"
       >
@@ -242,7 +176,7 @@
             >
               <div class="d-flex align-center pa-4 ga-4">
                 <div class="text-h6 font-weight-bold text-grey-lighten-1 px-2" style="min-width: 40px">
-                  {{ item.raw.sort_order ?? 0 }}
+                  {{ item.raw.id }}
                 </div>
 
                 <v-avatar rounded="lg" size="64" class="bg-grey-darken-4 elevation-4 border border-opacity-25">
@@ -293,6 +227,7 @@
           </v-container>
         </template>
       </v-data-iterator>
+      
     </v-card>
     <ClientOnly>
       <ExportImportForm 
@@ -433,7 +368,7 @@
       { title: 'Title', key: 'title' },
       { title: 'Age Range', key: 'age_range' },
       { title: 'Description', key: 'description' },
-      { title: 'Sort Order', key: 'sort_order' },
+      { title: 'ID', key: 'id' },
       { title: 'Status', key: 'is_active' }
     ]
   }

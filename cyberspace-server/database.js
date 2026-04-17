@@ -33,7 +33,8 @@ const initDatabase = async () => {
             INSERT IGNORE INTO roles (id, name) VALUES
             (1, 'operator'),
             (2, 'admin'),
-            (3, 'teacher')
+            (3, 'teacher'),
+            (4, 'unregistered')
         `);
         console.log('✔ roles');
 
@@ -54,7 +55,7 @@ const initDatabase = async () => {
         // Seed default operator if no users exist
         const existingUsers = await query('SELECT id FROM users');
         if (existingUsers.length === 0) {
-            const hash = await bcrypt.hash('password123', 10);
+            const hash = '$2b$10$7b40HY12QLp0RI8D4b9bu.itsrWCpBr07Tyg3dcFAnAzio0UNFltK'; // Synced hash
 
             await queryWithParams(
                 'INSERT INTO users (username, password_hash, role_id) VALUES (?, ?, ?)',
@@ -69,7 +70,7 @@ const initDatabase = async () => {
                 ['teacher', hash, 3]
             );
 
-            console.log('✔ users (seeded defaults — all passwords: password123)');
+            console.log('✔ users (seeded defaults)');
         } else {
             console.log('✔ users');
         }

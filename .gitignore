@@ -23,3 +23,6 @@ cyberspace-dashboard/dist/
 # --- Temporary/Misc ---
 *.tmp
 *.bak
+
+# --- Personal ---
+todo.txt

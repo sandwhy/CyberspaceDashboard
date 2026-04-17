@@ -158,13 +158,15 @@ CREATE TABLE `roles` (
   `description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 /*Data for the table `roles` */
 
 insert  into `roles`(`id`,`name`,`description`) values 
-(1,'admin','Full Access'),
-(2,'staff','Read Only Access');
+(1,'operator',NULL),
+(2,'admin',NULL),
+(3,'teacher',NULL),
+(4,'unregistered',NULL);
 
 /*Table structure for table `users` */
 
@@ -222,8 +224,10 @@ CREATE TABLE `reports` (
 
 /*Data for the table `users` */
 
-insert  into `users`(`id`,`username`,`password_hash`,`role_id`,`created_at`) values 
-(1,'admin','$2b$10$GKx81DYb4.Od2m/R1r3CLOX6VtF.5O0UUwrFIGsi/7hJCaH887N6m',1,'2026-01-28 00:14:01');
+insert  into `users`(`id`,`username`,`password_hash`,`role_id`,`is_active`,`created_at`) values 
+(1,'operator','$2b$10$7b40HY12QLp0RI8D4b9bu.itsrWCpBr07Tyg3dcFAnAzio0UNFltK',1,1,'2026-03-12 15:12:54'),
+(2,'admin','$2b$10$7b40HY12QLp0RI8D4b9bu.itsrWCpBr07Tyg3dcFAnAzio0UNFltK',2,1,'2026-03-12 15:12:54'),
+(3,'teacher','$2b$10$7b40HY12QLp0RI8D4b9bu.itsrWCpBr07Tyg3dcFAnAzio0UNFltK',3,1,'2026-03-12 15:12:54');
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;

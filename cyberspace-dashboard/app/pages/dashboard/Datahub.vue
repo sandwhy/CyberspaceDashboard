@@ -95,12 +95,18 @@
           </div>
         </template>
 
-        <template v-slot:item.date="{ value }">
+        <!-- <template v-slot:item.date="{ value }">
           <div class="d-flex align-center font-weight-bold text-white">
             <v-icon size="small" color="orange-lighten-2" class="mr-2">mdi-calendar-month</v-icon>
             {{ formatDate(value) }}
           </div>
-        </template>
+        </template> -->
+        <template v-slot:item.date="{ item }">
+  <div class="d-flex align-center font-weight-bold text-white">
+    <v-icon size="small" color="orange-lighten-2" class="mr-2">mdi-calendar-month</v-icon>
+    {{ item.date }}
+  </div>
+</template>
 
         <template v-slot:item.time_start="{ item }">
           <div class="d-flex align-center text-white">
@@ -375,7 +381,6 @@
   })
 
   const activeHeaders = computed(() => headersMap[currentView.value])
-  const activeItems = computed(() => data[currentView.value])
 
   const displayedItems = computed(() => {
     const rawItems = data[currentView.value] || []
@@ -384,13 +389,11 @@
     const s = search.value.toLowerCase()
 
     return rawItems.filter(item => {
-      // If a specific column is selected, only search that property
       if (searchColumn.value !== 'all') {
         const val = item[searchColumn.value]
         return String(val || '').toLowerCase().includes(s)
       }
 
-      // Otherwise, fallback to the current "Global" search
       return Object.values(item).some(val => 
         String(val || '').toLowerCase().includes(s)
       )
@@ -398,7 +401,30 @@
   })
 
   // 6. METHODS (API Actions)
-  async function fetchData() {
+  // async function fetchData() {
+  //   isLoading.value = true
+  //   const token = useCookie('token')
+
+  //   try {
+  //     if (currentView.value === 'schedules') {
+  //       const reportRes = await fetch(`${config.public.apiBase}/api/reports`, {
+  //         headers: { 'Authorization': `Bearer ${token.value}` } 
+  //       })
+  //       data.reports = await reportRes.json()
+  //     }
+
+  //     const res = await fetch(`${config.public.apiBase}/api/${currentView.value}`, {
+  //       headers: { 'Authorization': `Bearer ${token.value}` } 
+  //     })
+  //     data[currentView.value] = await res.json()
+  //     console.log('dat', data)
+  //   } catch (err) {
+  //     console.error("Fetch error:", err)
+  //   } finally {
+  //     isLoading.value = false
+  //   }
+  // }
+async function fetchData() {
     isLoading.value = true
     const token = useCookie('token')
 
@@ -413,14 +439,20 @@
       const res = await fetch(`${config.public.apiBase}/api/${currentView.value}`, {
         headers: { 'Authorization': `Bearer ${token.value}` } 
       })
-      data[currentView.value] = await res.json()
+      const rawData = await res.json()
+
+      // CRITICAL: Use formatDate() here, not displayDate
+      data[currentView.value] = rawData.map(item => ({
+        ...item,
+        date: item.date ? formatDate(item.date) : '---'
+      }))
+      console.log(data)
     } catch (err) {
       console.error("Fetch error:", err)
     } finally {
       isLoading.value = false
     }
   }
-
 
   // 7. METHODS (UI & Navigation)
   function hasReport(schedule) {
@@ -463,10 +495,8 @@
 
   // 8. METHODS (Form & Dialog Handlers)
   function openDataDialog(mode) {
-    console.log('wowzar',dataActionMode.value)
     dataActionMode.value = mode
     dataActionOpen.value = true
-    console.log(dataActionOpen.value)
 
   }
 

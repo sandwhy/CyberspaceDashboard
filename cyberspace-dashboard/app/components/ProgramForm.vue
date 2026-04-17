@@ -39,12 +39,8 @@
             <v-text-field v-model="localProgram.title" label="Program Title" variant="outlined" prepend-inner-icon="mdi-robot" hide-details="auto"></v-text-field>
           </v-col>
 
-          <v-col cols="12" sm="6">
+          <v-col cols="12">
             <v-text-field v-model="localProgram.age_range" label="Age Range" variant="outlined" prepend-inner-icon="mdi-account-group" hide-details="auto"></v-text-field>
-          </v-col>
-
-          <v-col cols="12" sm="6">
-            <v-text-field v-model.number="localProgram.sort_order" label="Sort Order" type="number" variant="outlined" prepend-inner-icon="mdi-sort-numeric-ascending" hide-details="auto"></v-text-field>
           </v-col>
 
           <v-col cols="12">
@@ -76,20 +72,6 @@
                 </div>
               </template>
             </v-img>
-          </v-col>
-
-          <v-col cols="12" sm="6">
-            <v-text-field v-model="localProgram.icon" label="Icon (MDI)" placeholder="mdi-robot" variant="outlined" prepend-inner-icon="mdi-emoticon-outline" hide-details="auto"></v-text-field>
-          </v-col>
-          <v-col cols="12" sm="6">
-            <v-select
-              v-model="localProgram.bg_color"
-              :items="['bg-primary', 'bg-secondary', 'bg-info', 'bg-success', 'bg-warning', 'bg-error']"
-              label="Background Theme"
-              variant="outlined"
-              prepend-inner-icon="mdi-palette"
-              hide-details="auto"
-            ></v-select>
           </v-col>
         </v-row>
       </v-card-text>
@@ -170,9 +152,6 @@ watch(() => props.modelValue, (isOpen) => {
         title: '',
         age_range: '',
         description: '',
-        icon: 'mdi-robot',
-        bg_color: 'bg-primary',
-        sort_order: 1,
         is_active: 1
       }
       imagePreview.value = null
@@ -187,11 +166,18 @@ const save = async () => {
   
   // Create FormData for file upload
   const fd = new FormData()
+  
+  // Append current fields
   Object.keys(localProgram.value).forEach(key => {
     if (localProgram.value[key] !== null) {
       fd.append(key, localProgram.value[key])
     }
   })
+
+  // Explicitly set removed fields to null for the server
+  fd.set('sort_order', '') 
+  fd.set('icon', '')
+  fd.set('bg_color', '')
   
   if (imageFile.value) {
     fd.append('image', imageFile.value) 
@@ -200,14 +186,12 @@ const save = async () => {
   const url = props.isEdit 
     ? `${config.public.apiBase}/api/programs/${localProgram.value.id}` 
     : `${config.public.apiBase}/api/programs`
-  
-    console.log("FormData as Object:", Object.fromEntries(fd));
 
   try {
     const res = await fetch(url, {
       method: props.isEdit ? 'PUT' : 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
-      body: fd // Browser handles Content-Type
+      body: fd 
     })
 
     if (res.ok) {

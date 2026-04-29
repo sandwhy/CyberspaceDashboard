@@ -68,21 +68,21 @@
 </template>
 
 <script setup>
-const props = defineProps({
-  headers: Array,
-  items: Array,
-  search: String,
-  isLoading: Boolean,
-  currentView: String,
-  reports: {
-    type: Array,
-    default: () => []
+  const props = defineProps({
+    headers: Array,
+    items: Array,
+    search: String,
+    isLoading: Boolean,
+    currentView: String,
+    reports: {
+      type: Array,
+      default: () => []
+    }
+  })
+
+  defineEmits(['go-to-calendar', 'edit-schedule', 'manage-report', 'edit-report', 'edit-user'])
+
+  function hasReport(schedule) {
+    return props.reports.some(r => r.schedule_id === schedule.id)
   }
-})
-
-defineEmits(['go-to-calendar', 'edit-schedule', 'manage-report', 'edit-report', 'edit-user'])
-
-function hasReport(schedule) {
-  return props.reports.some(r => r.schedule_id === schedule.id)
-}
 </script>

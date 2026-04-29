@@ -106,6 +106,7 @@
     searchColumn.value = 'all' // Reset to global search
     fetchData()
   }
+  watch(currentView, handleViewChange)
 
   // Dialog Controls
   const userDialogOpen = ref(false)
@@ -254,6 +255,7 @@ async function fetchData() {
       const res = await fetch(`${config.public.apiBase}/api/${currentView.value}`, {
         headers: { 'Authorization': `Bearer ${token.value}` } 
       })
+      console.log('The current view is:', currentView.value)
       const rawData = await res.json()
 
       // CRITICAL: Use formatDate() here, not displayDate

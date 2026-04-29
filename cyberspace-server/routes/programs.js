@@ -3,6 +3,7 @@ const router            = express.Router();
 const db                = require('../db');
 const upload            = require('../upload');
 const authenticateToken = require('../mdw/auth');
+const fs                = require('fs');
 
 // GET /api/programs - public, active only
 router.get('/', (req, res) => {
@@ -23,9 +24,14 @@ router.get('/', (req, res) => {
 // POST /api/programs
 router.post('/', authenticateToken, upload.single('image'), (req, res) => {
     const { title, age_range, description, bg_color, sort_order, is_active } = req.body;
-    if (!title || !age_range) return res.status(400).json({ message: 'Title and age range are required' });
+    if (!title || !age_range) {
+        if (req.file) fs.unlink(req.file.path, () => {});
+        return res.status(400).json({ message: 'Title and age range are required' });
+    }
 
     const image_url = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : null;
+    const parsedSortOrder = sort_order ? parseInt(sort_order, 10) : 0;
+    const isActiveInt = (is_active === 'true' || is_active === '1' || is_active == 1) ? 1 : 0;
 
     db.query(
         'INSERT INTO programs (title, age_range, description, image_url, bg_color, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -35,12 +41,14 @@ router.post('/', authenticateToken, upload.single('image'), (req, res) => {
                 description || '', 
                 image_url, 
                 bg_color || 'bg-light-blue', 
-                sort_order || 0, 
-                // FIX: Ensure string "1" or "true" results in 1
-                (is_active === 'true' || is_active === '1' || is_active == 1) ? 1 : 0
+                isNaN(parsedSortOrder) ? 0 : parsedSortOrder, 
+                isActiveInt
             ],
         (err, result) => {
-            if (err) return res.status(500).json({ message: 'Database error', error: err });
+            if (err) {
+                if (req.file) fs.unlink(req.file.path, () => {});
+                return res.status(500).json({ message: 'Database error', error: err });
+            }
             res.status(201).json({ message: 'Program created', id: result.insertId });
         }
     );
@@ -51,12 +59,26 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
     const { title, age_range, description, bg_color, sort_order, is_active } = req.body;
 
     db.query('SELECT * FROM programs WHERE id = ?', [req.params.id], (err, results) => {
-        if (err || results.length === 0) return res.status(404).json({ message: 'Program not found' });
+        if (err || results.length === 0) {
+            if (req.file) fs.unlink(req.file.path, () => {});
+            return res.status(404).json({ message: 'Program not found' });
+        }
 
         const c         = results[0];
         const image_url = req.file
             ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
             : c.image_url;
+
+        let parsedSortOrder = c.sort_order;
+        if (sort_order !== undefined && sort_order !== '') {
+            parsedSortOrder = parseInt(sort_order, 10);
+            if (isNaN(parsedSortOrder)) parsedSortOrder = c.sort_order;
+        }
+
+        let isActiveInt = c.is_active;
+        if (is_active !== undefined && is_active !== '') {
+            isActiveInt = (is_active === 'true' || is_active === '1' || is_active == 1) ? 1 : 0;
+        }
 
         db.query(
             'UPDATE programs SET title=?, age_range=?, description=?, image_url=?, bg_color=?, sort_order=?, is_active=? WHERE id=?',
@@ -66,13 +88,15 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
                 description !== undefined ? description : c.description,
                 image_url,
                 bg_color    || c.bg_color,
-                sort_order  !== undefined ? sort_order : c.sort_order,
-                // FIX: Added check for string "1"
-                is_active !== undefined ? (is_active === 'true' || is_active === '1' || is_active == 1) : c.is_active,
+                parsedSortOrder,
+                isActiveInt,
                 req.params.id
             ],
             (err) => {
-                if (err) return res.status(500).json({ message: 'Database error', error: err });
+                if (err) {
+                    if (req.file) fs.unlink(req.file.path, () => {});
+                    return res.status(500).json({ message: 'Database error', error: err });
+                }
                 res.json({ message: 'Program updated', id: req.params.id });
             }
         );

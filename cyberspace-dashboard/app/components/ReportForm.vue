@@ -49,22 +49,28 @@
               accept="image/*"
               hide-details="auto"
               @update:model-value="createPreview"
-              class="mb-4"
+              :class="imagePreview ? 'mb-2' : 'mb-4'"
             ></v-file-input>
 
-            <v-img
+            <v-card
               v-if="imagePreview"
-              :src="imagePreview"
-              max-height="200"
-              class="rounded-lg mb-4 border"
-              cover
+              class="mb-4 rounded-xl border border-opacity-25 overflow-hidden"
+              color="grey-darken-4"
+              variant="flat"
             >
-              <template v-slot:placeholder>
-                <div class="d-flex align-center justify-center fill-height">
-                  <v-progress-circular indeterminate color="grey-lighten-4"></v-progress-circular>
-                </div>
-              </template>
-            </v-img>
+              <v-img
+                :src="imagePreview"
+                max-height="350"
+                class="bg-black"
+                style="object-fit: contain;"
+              >
+                <template v-slot:placeholder>
+                  <div class="d-flex align-center justify-center fill-height">
+                    <v-progress-circular indeterminate color="orange-lighten-2"></v-progress-circular>
+                  </div>
+                </template>
+              </v-img>
+            </v-card>
           </v-col>
 
           <v-col cols="12">

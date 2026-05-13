@@ -1,6 +1,7 @@
 {
   "name": "cyberspace-backend",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "Backend API for Cyberspace registration",
   "main": "index.js",
   "scripts": {

@@ -8,7 +8,8 @@ const db = mysql.createPool({
     dateStrings: true, 
     waitForConnections: true,
     connectionLimit:  10,
-    queueLimit:       0
+    queueLimit:       0,
+    ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : null
 });
  
 module.exports = db;

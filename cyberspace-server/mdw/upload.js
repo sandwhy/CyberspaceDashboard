@@ -1,10 +1,12 @@
 const multer = require('multer');
 const path = require('path');
+const isProd = process.env.NODE_ENV === 'production';
+const uploadDir = isProd ? '/tmp' : './uploads';
 
 // 1. Configure Storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, isProd ? '/tmp' : 'uploads/');
   },
   filename: (req, file, cb) => {
     // Save as a temp file first
@@ -16,7 +18,7 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|webp/;
   const isMatch = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  
+
   if (isMatch) {
     cb(null, true);
   } else {
@@ -24,7 +26,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit

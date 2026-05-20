@@ -23,9 +23,9 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { 
-          name: 'description', 
-          content: 'Cyberspace offers world-class STEAM education for children. Learn coding, robotics, and innovation with our expert curriculum. Innovate. Create. Future Ready.' 
+        {
+          name: 'description',
+          content: 'Cyberspace offers world-class STEAM education for children. Learn coding, robotics, and innovation with our expert curriculum. Innovate. Create. Future Ready.'
         },
         { name: 'format-detection', content: 'telephone=no' }
       ],
@@ -36,7 +36,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
+      apiBase: (process.env.DB_HOST || 'http://localhost:5000').replace(/\/$/, '')
     }
   }
 })

@@ -28,12 +28,34 @@ app.use('/api/testRoutes', require('./routes/test'));
 
 // ---------- Start
 app.use('/uploads', express.static('uploads'));
-db.getConnection(async (err, connection) => {
-    if (err) return console.error('DB connection failed:', err);
-    console.log('✔ Connected to MySQL database.');
-    connection.release();
-    // when you want to initialise new database
-    // await initDatabase();
+
+const mysql = require('mysql2');
+
+// Automatically verify and create the database if it doesn't exist
+const dbName = process.env.DB_NAME || 'cyberspace_db';
+const bootstrapConnection = mysql.createConnection({
+    host: process.env.DB_HOST || '127.0.0.1',
+    port: parseInt(process.env.DB_PORT || '3306', 10),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+});
+
+bootstrapConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``, (err) => {
+    if (err) {
+        console.error('⚠️ Could not automatically verify/create database:', err.message);
+    } else {
+        console.log(`✔ Database "${dbName}" checked/created successfully.`);
+    }
+    bootstrapConnection.end();
+
+    // Now establish connection pool and initialize tables
+    db.getConnection(async (poolErr, connection) => {
+        if (poolErr) return console.error('DB connection failed:', poolErr);
+        console.log('✔ Connected to MySQL database.');
+        connection.release();
+        // await initDatabase();
+
+    });
 });
 
 if (process.env.NODE_ENV !== 'production') {

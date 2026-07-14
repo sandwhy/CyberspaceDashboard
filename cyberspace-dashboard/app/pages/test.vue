@@ -145,7 +145,7 @@
 
                 <v-col cols="12" md="1">
                   <v-avatar rounded="lg" size="48" class="bg-grey-lighten-3">
-                    <v-img :src="item.raw.image_url || '/placeholder-robot.png'"></v-img>
+                    <v-img :src="getImageUrl(item.raw.image_url)"></v-img>
                   </v-avatar>
                 </v-col>
 
@@ -329,9 +329,10 @@
     testResult.value = `Formatted: ${formatDate(rawDate)}\nISO: ${toLocalISO(rawDate)}`
   }
 
+  const config = useRuntimeConfig()
+
   const fetchTeachers = async () => {
     isLoading.value = true
-    const config = useRuntimeConfig()
     const token = useCookie('token').value
 
     try {
@@ -396,6 +397,12 @@
       active: 0
     }
   ])
+
+  const getImageUrl = (url) => {
+    if (!url) return '/placeholder-robot.png';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${config.public.apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
 
   onMounted(() => fetchTeachers())
 </script>

@@ -37,7 +37,7 @@ router.post('/', authenticateToken, upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'Image file is required' });
     if (!title)    return res.status(400).json({ message: 'Title is required' });
 
-    const image_url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const image_url = `/uploads/${req.file.filename}`;
     db.query(
         'INSERT INTO gallery (title, description, image_url, category) VALUES (?, ?, ?, ?)',
         [title, description, image_url, category || 'General'],
@@ -57,7 +57,7 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
 
         const c         = results[0];
         const image_url = req.file
-            ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
+            ? `/uploads/${req.file.filename}`
             : c.image_url;
 
         db.query(

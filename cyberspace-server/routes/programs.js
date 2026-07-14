@@ -29,7 +29,7 @@ router.post('/', authenticateToken, upload.single('image'), (req, res) => {
         return res.status(400).json({ message: 'Title and age range are required' });
     }
 
-    const image_url = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : null;
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
     const parsedSortOrder = sort_order ? parseInt(sort_order, 10) : 0;
     const isActiveInt = (is_active === 'true' || is_active === '1' || is_active == 1) ? 1 : 0;
 
@@ -66,7 +66,7 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
 
         const c         = results[0];
         const image_url = req.file
-            ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
+            ? `/uploads/${req.file.filename}`
             : c.image_url;
 
         let parsedSortOrder = c.sort_order;

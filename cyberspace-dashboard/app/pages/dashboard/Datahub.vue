@@ -151,7 +151,7 @@
   const headersMap = {
     reports: [
       { title: 'Id - Teacher', key: 'teacher_name', align: 'start' },
-      { title: 'Date', key: 'date', align: 'start' },
+      { title: 'Date', key: 'displayDate', align: 'start' },
       { title: 'Start - End Time', key: 'time_start', align: 'start', sortable: false },
       { title: 'Program / Module', key: 'program', align: 'center' },
       { title: 'Attendance', key: 'total_student_attendance', align: 'center' },
@@ -161,7 +161,7 @@
     ],
     schedules: [
       { title: 'Id - Teacher', key: 'teacher_name', align: 'start' },
-      { title: 'Date', key: 'date', align: 'start' },
+      { title: 'Date', key: 'displayDate', align: 'start' },
       { title: 'Start - End Time', key: 'time_start', align: 'start', sortable: false },
       { title: 'Program / Module', key: 'program', align: 'center' },
       { title: 'Location', key: 'location', align: 'center' },
@@ -258,10 +258,10 @@ async function fetchData() {
       console.log('The current view is:', currentView.value)
       const rawData = await res.json()
 
-      // CRITICAL: Use formatDate() here, not displayDate
+      // Keep raw date intact for forms, add displayDate for table rendering
       data[currentView.value] = rawData.map(item => ({
         ...item,
-        date: item.date ? formatDate(item.date) : '---'
+        displayDate: item.date ? formatDate(item.date) : '---'
       }))
       console.log(data)
     } catch (err) {

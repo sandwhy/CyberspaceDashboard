@@ -1,21 +1,8 @@
 require('dotenv').config();
-const mysql = require('mysql2');
+const db = require('./db');
 const bcrypt = require('bcryptjs');
 
-const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'cyberspace_db'
-});
-
-db.connect(async (err) => {
-    if (err) {
-        console.error('Connection failed:', err);
-        process.exit(1);
-    }
-    console.log('Connected to DB');
-
+(async () => {
     try {
         const password = 'admin123';
         const hash = await bcrypt.hash(password, 10);
@@ -33,13 +20,14 @@ db.connect(async (err) => {
         db.query(query, [hash, hash], (err, result) => {
             if (err) {
                 console.error('Error updating admin:', err);
+                process.exit(1);
             } else {
                 console.log('Admin password reset successfully to: admin123');
+                process.exit(0);
             }
-            db.end();
         });
     } catch (error) {
         console.error('Error:', error);
-        db.end();
+        process.exit(1);
     }
-});
+})();

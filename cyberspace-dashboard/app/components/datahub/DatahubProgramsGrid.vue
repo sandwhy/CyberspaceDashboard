@@ -23,7 +23,7 @@
             </div>
 
             <v-avatar rounded="lg" size="64" class="bg-grey-darken-4 elevation-4 border border-opacity-25">
-              <v-img :src="item.raw.image_url || 'http://localhost:5000/uploads/placeholder-robot.png'" cover ></v-img>
+              <v-img :src="getImageUrl(item.raw.image_url)" cover ></v-img>
             </v-avatar>
 
             <div class="flex-grow-1" style="min-width: 150px">
@@ -69,6 +69,8 @@
 </template>
 
 <script setup>
+const config = useRuntimeConfig();
+
 defineProps({
   items: Array,
   search: String,
@@ -76,4 +78,10 @@ defineProps({
   headers: Array
 })
 defineEmits(['edit-program'])
+
+const getImageUrl = (url) => {
+  if (!url) return `${config.public.apiBase}/uploads/placeholder-robot.png`;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${config.public.apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 </script>

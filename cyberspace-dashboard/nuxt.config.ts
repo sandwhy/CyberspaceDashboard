@@ -36,7 +36,10 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: (process.env.DB_HOST || 'http://localhost:5000').replace(/\/$/, '')
+      apiBase: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
     }
+  },
+  devServer: {
+    port: parseInt(process.env.PORT || '3000', 10)
   }
 })

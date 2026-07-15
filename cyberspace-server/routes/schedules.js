@@ -1,8 +1,8 @@
-const express           = require('express');
-const router            = express.Router();
-const db                = require('../db');
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
 const authenticateToken = require('../mdw/auth');
-const { v4: uuidv4 }    = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 
 // GET /api/schedules - now includes teacher_name
 router.get('/', authenticateToken, (req, res) => {
@@ -13,12 +13,12 @@ router.get('/', authenticateToken, (req, res) => {
         FROM schedules s 
         LEFT JOIN users u ON s.teacher_id = u.id
     `;
-    
+
     const params = [];
 
     if (isTeacher) {
         query += ' WHERE s.teacher_id = ?';
-        params.push(req.user.id); 
+        params.push(req.user.id);
     }
 
     query += ' ORDER BY s.date DESC, s.time_start DESC';
@@ -38,9 +38,9 @@ router.post('/bulk', authenticateToken, async (req, res) => {
 
     for (const row of records) {
         // 1. Disregard incoming ID and map CSV headers to DB keys
-        const { 
-            teacher_id, date, time_start, time_end, 
-            frequency, repeat_until, 
+        const {
+            teacher_id, date, time_start, time_end,
+            frequency, repeat_until,
             color, program, module, location, summary, notes
         } = row;
 
@@ -96,7 +96,7 @@ router.post('/bulk', authenticateToken, async (req, res) => {
         }
     }
 
-    res.status(200).json({ 
+    res.status(200).json({
         message: `Import complete. Created ${totalCreated} sessions.`,
         errors: errors.length > 0 ? errors : null
     });
@@ -104,10 +104,10 @@ router.post('/bulk', authenticateToken, async (req, res) => {
 
 // POST /api/schedules - Create new entry
 router.post('/', authenticateToken, (req, res) => {
-    console.log('DATA RECEIVED FOR NEW SCHEDULE:', req.body);
+    // console.log('DATA RECEIVED FOR NEW SCHEDULE:', req.body);
 
-    const { 
-        teacher_id, date, time_start, time_end, 
+    const {
+        teacher_id, date, time_start, time_end,
         repeat_frequency, repeat_until, // Updated key
         color, program, module, location, notes,
     } = req.body;
@@ -125,28 +125,28 @@ router.post('/', authenticateToken, (req, res) => {
 
     // Unroll the series
     let safetyCounter = 0;
-    while (currentDate <= stopDate && safetyCounter < 52) { 
+    while (currentDate <= stopDate && safetyCounter < 52) {
         const formattedDate = currentDate.toLocaleDateString('en-CA')
         sessions.push([
-            teacher_id, 
+            teacher_id,
             formattedDate,
-            time_start, 
-            time_end, 
-            freq_id, 
-            frequency || 'none', 
+            time_start,
+            time_end,
+            freq_id,
+            frequency || 'none',
             repeat_until || null,
-            color || '#C2DED1', 
-            program, 
-            module, 
-            location, 
-            notes, 
-            req.user.id 
+            color || '#C2DED1',
+            program,
+            module,
+            location,
+            notes,
+            req.user.id
         ]);
 
         if (frequency === 'Weekly') currentDate.setDate(currentDate.getDate() + 7);
         else if (frequency === 'Bi-weekly') currentDate.setDate(currentDate.getDate() + 14);
         else if (frequency === 'Monthly') currentDate.setMonth(currentDate.getMonth() + 1);
-        else break; 
+        else break;
 
         safetyCounter++;
     }
@@ -176,16 +176,16 @@ router.put('/:id', authenticateToken, (req, res) => {
     // 1. FILTER: Only extract columns that exist in the DB
     const validData = {
         teacher_id: req.body.teacher_id,
-        date:       req.body.date,
+        date: req.body.date,
         time_start: req.body.time_start,
-        time_end:   req.body.time_end,
-        color:      req.body.color,
-        program:    req.body.program,
-        module:     req.body.module,
-        location:   req.body.location,
-        notes:      req.body.notes,
+        time_end: req.body.time_end,
+        color: req.body.color,
+        program: req.body.program,
+        module: req.body.module,
+        location: req.body.location,
+        notes: req.body.notes,
         // Include recurring metadata
-        frequency:  req.body.frequency, 
+        frequency: req.body.frequency,
         repeat_until: req.body.repeat_until
     };
 
@@ -203,7 +203,7 @@ router.put('/:id', authenticateToken, (req, res) => {
                 WHERE freq_id = ? AND date >= ?
             `;
             const params = [
-                validData.time_start, validData.time_end, validData.location, 
+                validData.time_start, validData.time_end, validData.location,
                 validData.color, validData.notes, validData.program, validData.module,
                 freq_id, validData.date
             ];

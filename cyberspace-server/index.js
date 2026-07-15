@@ -38,29 +38,34 @@ const bootstrapConnection = mysql.createConnection({
     port: parseInt(process.env.DB_PORT || '3306', 10),
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
+    // 🔥 FIX 1: Enforce SSL for TiDB Cloud connections
+    ssl: { rejectUnauthorized: false }
 });
 
 bootstrapConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``, (err) => {
     if (err) {
         console.error('⚠️ Could not automatically verify/create database:', err.message);
+        // 🔥 FIX 2: If it fails, safely close instead of executing commands on a closed socket
+        bootstrapConnection.destroy();
+        return;
     } else {
         console.log(`✔ Database "${dbName}" checked/created successfully.`);
+        bootstrapConnection.end();
     }
-    bootstrapConnection.end();
 
     // Now establish connection pool and initialize tables
     db.getConnection(async (poolErr, connection) => {
         if (poolErr) return console.error('DB connection failed:', poolErr);
-        console.log('✔ Connected to MySQL database.');
+        console.log('✔ Connected to MySQL database via Pool.');
         connection.release();
         // await initDatabase();
-
     });
 });
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`✔ Server running on http://localhost:${PORT}`);
+        console.log(`✔ Database running on http://${process.env.DB_HOST}:${process.env.DB_PORT}`);
     });
 }
 

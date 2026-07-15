@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-card class="rounded-lg">
-
+      
       <DatahubToolbar
         v-model:view="currentView"
         v-model:search="search"

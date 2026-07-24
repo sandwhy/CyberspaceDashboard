@@ -4,6 +4,7 @@ const jwt        = require('jsonwebtoken');
 const router     = express.Router();
 const db         = require('../db');
 
+const authenticateToken = require('../mdw/auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'Something very different';
 
 // POST /api/auth/login
@@ -39,26 +40,84 @@ router.post('/login', (req, res) => {
     });
 });
 
-// POST /api/auth/register - public registration form
-router.post('/register', (req, res) => {
-    const { parent_name, whatsapp_number, child_name, child_age, info_source, has_prior_experience, bot_field } = req.body;
+// POST /api/auth/register -- register staff
+router.post('/register', async (req, res) => {
+    console.log('hello its going here')
+    const { username, password } = req.body;
 
-    if (bot_field) {
-        console.log('Spam bot detected!');
-        return res.status(200).json({ message: 'Registration successful!' });
+    // 1. Validation
+    if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password are required.' });
     }
 
-    if (!parent_name || !whatsapp_number || !child_name || !child_age) {
-        return res.status(400).json({ message: 'Please provide all required fields.' });
+    try {
+        // 2. Check if username already exists to prevent DB crashes
+        db.query('SELECT id FROM users WHERE username = ?', [username], async (err, results) => {
+            if (err) return res.status(500).json({ message: 'Database error', error: err });
+            if (results.length > 0) {
+                return res.status(400).json({ message: 'Username already taken.' });
+            }
+
+            // 3. Hash the password
+            const salt = await bcrypt.genSalt(10);
+            const password_hash = await bcrypt.hash(password, salt);
+
+            // 4. Insert into users table
+            // role_id is NULL by default (Pending), is_active is 1 by default
+            const query = `INSERT INTO users (username, password_hash, role_id, is_active) VALUES (?, ?, 4, 1)`;
+            
+            db.query(query, [username, password_hash], (err, result) => {
+                if (err) return res.status(500).json({ message: 'Failed to create account.', error: err });
+                
+                res.status(201).json({ 
+                    success: true, 
+                    message: 'Staff account created successfully. Please wait for Admin approval.' 
+                });
+            });
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error during registration.' });
+    }
+});
+
+// ---------- LEGACY VIEW REGISTRATIONS (Intact) ----------
+router.get('/registrations', authenticateToken, (req, res) => {
+    const limit       = parseInt(req.query.limit) || 0;
+    let query         = 'SELECT * FROM registrations ORDER BY created_at DESC';
+    const queryParams = [];
+
+    if (limit > 0) {
+        query += ' LIMIT ?';
+        queryParams.push(limit);
     }
 
-    const query  = `INSERT INTO registrations (parent_name, whatsapp_number, child_name, child_age, info_source, has_prior_experience) VALUES (?, ?, ?, ?, ?, ?)`;
-    const values = [parent_name, whatsapp_number, child_name, child_age, info_source, has_prior_experience];
-
-    db.query(query, values, (err, result) => {
+    db.query(query, queryParams, (err, results) => {
         if (err) return res.status(500).json({ message: 'Database error', error: err });
-        res.status(201).json({ message: 'Registration successful!', registrationId: result.insertId });
+        res.json(results);
     });
 });
+
+
+// // POST /api/auth/register - student register
+// router.post('/register', (req, res) => {
+//     const { parent_name, whatsapp_number, child_name, child_age, info_source, has_prior_experience, bot_field } = req.body;
+
+//     if (bot_field) {
+//         console.log('Spam bot detected!');
+//         return res.status(200).json({ message: 'Registration successful!' });
+//     }
+
+//     if (!parent_name || !whatsapp_number || !child_name || !child_age) {
+//         return res.status(400).json({ message: 'Please provide all required fields.' });
+//     }
+
+//     const query  = `INSERT INTO registrations (parent_name, whatsapp_number, child_name, child_age, info_source, has_prior_experience) VALUES (?, ?, ?, ?, ?, ?)`;
+//     const values = [parent_name, whatsapp_number, child_name, child_age, info_source, has_prior_experience];
+
+//     db.query(query, values, (err, result) => {
+//         if (err) return res.status(500).json({ message: 'Database error', error: err });
+//         res.status(201).json({ message: 'Registration successful!', registrationId: result.insertId });
+//     });
+// });
 
 module.exports = router;

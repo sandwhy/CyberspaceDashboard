@@ -79,7 +79,7 @@ const handleLogin = async () => {
   error.value = ''
   try {
     const config = useRuntimeConfig()
-    const res = await fetch(`${config.public.apiBase}/api/login`, {
+    const res = await fetch(`${config.public.apiBase}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: username.value, password: password.value })
@@ -89,8 +89,6 @@ const handleLogin = async () => {
     if (res.ok && data.success) {
       const token = useCookie('token', { maxAge: 28800 })
       token.value = data.token
-      const user = useCookie('user', { maxAge: 28800 })
-      user.value = { username: data.username, role: data.role }
       router.push('/dashboard')
     } else {
       error.value = data.message || 'Invalid credentials'

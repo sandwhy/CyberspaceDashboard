@@ -160,7 +160,7 @@
     }
 
   // 1. Logic Imports
-  const { isTeacher, user } = useAuth()
+  const { isTeacher, user, role } = useAuth()
   
   const props = defineProps({
     modelValue: Boolean,
@@ -199,27 +199,27 @@
     }
   }
 
-  // 4. Watchers & Lifecycle
-watch(() => props.modelValue, async (isOpen) => {
-  if (isOpen) {
-    await Promise.all([fetchTeachers(), fetchPrograms()])
-    localEvent.value = { ...props.eventData }
+    // 4. Watchers & Lifecycle
+  watch(() => props.modelValue, async (isOpen) => {
+    if (isOpen) {
+      await Promise.all([fetchTeachers(), fetchPrograms()])
+      localEvent.value = { ...props.eventData }
 
-    // UPDATE: Allow both 'teacher' and 'operator' roles to trigger the autofill
-    const canAutofill = isTeacher.value || user.value?.role === 'operator';
+      // UPDATE: Allow both 'teacher' and 'operator' roles to trigger the autofill
+        const canAutofill = isTeacher.value || role === 'operator';
 
-    if (canAutofill && !props.isEdit && user?.value) {
-      const currentTeacher = teacherList.value.find(t => t.username === user.value.username)
-      
-      if (currentTeacher) {
-        localEvent.value.teacher_id = currentTeacher.id
-        console.log('Successfully Mapped ID:', localEvent.value.teacher_id)
-      } else {
-        console.warn('Username not found in teacherList:', user.value.username)
+        if (canAutofill && !props.isEdit && user?.username) {
+          const currentTeacher = teacherList.value.find(t => t.username === user.username)
+        
+        if (currentTeacher) {
+          localEvent.value.teacher_id = currentTeacher.id
+          console.log('Successfully Mapped ID:', localEvent.value.teacher_id)
+        } else {
+          console.warn('Username not found in teacherList:', user.username)
+        }
       }
     }
-  }
-}, { immediate: true })
+  }, { immediate: true })
 
   const save = async () => {
   const config = useRuntimeConfig()

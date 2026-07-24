@@ -12,6 +12,7 @@
           <div class="d-flex ga-4">
             <v-btn color="primary" @click="runLogTest">Log Timestamp</v-btn>
             <v-btn variant="outlined" color="secondary" @click="runDateUtilsTest">Test Formats</v-btn>
+            <v-btn variant="outlined" color="secondary" @click="testDecode">TestDecode</v-btn>
           </div>
         </div>
 
@@ -324,6 +325,17 @@
 
   const runLogTest = () => { testResult.value = `Clicked: ${new Date().toLocaleTimeString()}` }
 
+
+  import { jwtDecode } from 'jwt-decode'
+
+  const testDecode = () => {
+    const { user, role, isPending } = useAuth()
+    console.log("-------")
+    console.log(user)
+    console.log(role)
+    console.log(isPending)
+
+  }
   const runDateUtilsTest = () => {
     const rawDate = new Date()
     testResult.value = `Formatted: ${formatDate(rawDate)}\nISO: ${toLocalISO(rawDate)}`

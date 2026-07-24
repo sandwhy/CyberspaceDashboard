@@ -76,24 +76,24 @@
 
 <script setup>
   import { ref, onMounted, computed } from 'vue'
-  import { ExternalLink, LogOut, Sun, Moon, Menu, FileText, Calendar, Table2 } from 'lucide-vue-next'
+  import { LogOut, Menu, FileText, Calendar, Table2 } from 'lucide-vue-next'
 
   // 1. Use the shared Auth logic
   const { user, role, isPending } = useAuth()
-
+  // const decoded = jwtDecode(user)
   const isDarkMode = ref(true)
   const isSidebarCollapsed = ref(false)
 
   // 2. Computed Profile Data
-  const userName = computed(() => user?.value?.username || 'Guest')
+  const userName = user?.username || 'Guest'
   
   const userInitial = computed(() => {
-    return user?.value?.username ? user.value.username.charAt(0).toUpperCase() : '?'
+    return user.username ? user.username.charAt(0).toUpperCase() : '?'
   })
 
   const roleName = computed(() => {
-    if (!role.value) return 'Unregistered'
-    return role.value.charAt(0).toUpperCase() + role.value.slice(1)
+    if (!role) return 'Unregistered'
+    return role.charAt(0).toUpperCase() + role.slice(1)
   })
 
   // 3. Theme Logic
@@ -106,9 +106,7 @@
   // 4. Clean Logout
   const handleLogout = () => {
     const token = useCookie('token')
-    const userCookie = useCookie('user')
     token.value = null
-    userCookie.value = null
     navigateTo('/login')
   }
 

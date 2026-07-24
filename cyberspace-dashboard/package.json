@@ -12,6 +12,7 @@
   "dependencies": {
     "@mdi/font": "^7.4.47",
     "git": "^0.1.5",
+    "jwt-decode": "^4.0.0",
     "lucide-vue-next": "^1.0.0",
     "nodemon": "^3.1.14",
     "nuxt": "^4.4.2",

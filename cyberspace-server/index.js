@@ -17,7 +17,6 @@ app.use(bodyParser.json());
 // register
 // registrations
 app.use('/api/users', require('./routes/users'));
-app.use('/api/', require('./routes/register'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/schedules', require('./routes/schedules'));
 app.use('/api/reports', require('./routes/reports'));

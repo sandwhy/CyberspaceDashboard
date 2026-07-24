@@ -91,7 +91,7 @@ async function handleRegister() {
 
   try {
     isLoading.value = true
-    const res = await fetch(`${config.public.apiBase}/api/register-staff`, {
+    const res = await fetch(`${config.public.apiBase}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: form.value.username, password: form.value.password })

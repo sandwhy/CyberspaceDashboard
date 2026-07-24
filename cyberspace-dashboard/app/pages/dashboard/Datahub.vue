@@ -188,7 +188,7 @@
   })
 
   const filteredOptions = computed(() => {
-    if (isTeacher.value) {
+    if (isTeacher) {
       return viewOptions.filter(opt => 
         ['reports', 'schedules'].includes(opt.value)
       )
@@ -216,30 +216,6 @@
     })
   })
 
-  // 6. METHODS (API Actions)
-  // async function fetchData() {
-  //   isLoading.value = true
-  //   const token = useCookie('token')
-
-  //   try {
-  //     if (currentView.value === 'schedules') {
-  //       const reportRes = await fetch(`${config.public.apiBase}/api/reports`, {
-  //         headers: { 'Authorization': `Bearer ${token.value}` } 
-  //       })
-  //       data.reports = await reportRes.json()
-  //     }
-
-  //     const res = await fetch(`${config.public.apiBase}/api/${currentView.value}`, {
-  //       headers: { 'Authorization': `Bearer ${token.value}` } 
-  //     })
-  //     data[currentView.value] = await res.json()
-  //     console.log('dat', data)
-  //   } catch (err) {
-  //     console.error("Fetch error:", err)
-  //   } finally {
-  //     isLoading.value = false
-  //   }
-  // }
 async function fetchData() {
     isLoading.value = true
     const token = useCookie('token')

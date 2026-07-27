@@ -100,19 +100,18 @@
     </v-sheet>
 
     <ScheduleForm 
-      v-model="editDialog"
-      :is-edit="isEditMode"
-      :event-data="editedEvent"
-      @saved="refreshSchedules"
-      @deleted="refreshSchedules"
+      v-model="editDialog" 
+      :is-edit="isEditMode" 
+      :event-data="editedEvent" 
+      @saved="getEvents" 
+      @deleted="getEvents" 
     />
 
     <ReportForm 
-      v-model="reportDialogOpen"
-      :is-edit="false"
-      :report-data="selectedEventForReport"
-      @saved="refreshSchedules"
-      @deleted="refreshSchedules"
+      v-model="reportDialogOpen" 
+      :is-edit="false" 
+      :report-data="selectedEventForReport" 
+      @saved="getEvents"
     />
 
     <v-menu
@@ -167,21 +166,15 @@
 <script setup>
   import { ref, onMounted, computed, nextTick } from 'vue'
   import { useRoute } from 'vue-router'
-  import { formatTime, getTodayISO } from '~/utils/dateFormats'
+  import { formatTime, getTodayISO } from '~/utils/dateFormats' //
 
-  // 1. PAGE META & ROUTING
+  // 1. COMPOSABLES & ROUTING
   definePageMeta({ layout: 'dashboards' })
   const route = useRoute()
+  const { events, getEvents } = useSchedules() 
 
-  // 2. STORES & COMPOSABLES
-  //  Nuxt automatically imports useDataStore from ~/stores/useDataStore.js
-  const dataStore = useDataStore()
-
-  //  Read schedule events dynamically from the Pinia Store
-  const events = computed(() => dataStore.schedules)
-
-  // 3. CALENDAR & DATE STATE
-  const calendar = ref(null)      // Reference for $refs.calendar calls
+  // 2. CALENDAR & DATE STATE
+  const calendar = ref(null)      // Reference for the $refs.calendar calls
   const value = ref(new Date())   // Standard Date object for v-model
   const type = ref('week')
   const types = ['month', 'week', 'day']
@@ -190,7 +183,7 @@
   const datepickerOpen = ref(false)
   const pickedDate = ref(new Date())
 
-  // 4. INTERACTION STATE & DIALOGS
+  // 3. INTERACTION STATE
   const editDialog = ref(false)
   const isEditMode = ref(false)
   const editedEvent = ref({})
@@ -200,7 +193,7 @@
   const selectedElement = ref(null)
   const selectedEvent = ref({})
 
-  // 5. COMPUTED LABELS
+  // 4. COMPUTED LABELS (Fixed to handle Date objects correctly)
   const currentMonthLabel = computed(() => {
     return new Date(value.value).toLocaleString('default', { month: 'long' })
   })
@@ -209,28 +202,26 @@
     return new Date(value.value).getFullYear()
   })
 
-  // 6. METHODS
-  function refreshSchedules() {
-    dataStore.fetchData('schedules')
-  }
-
+  // 5. METHODS
   function goToToday() { 
     value.value = new Date() 
   }
 
-  // Handles selection from the v-date-picker
+  // This handles the selection from the v-date-picker
   function onDatePicked(newDate) {
     if (!newDate) return
     value.value = new Date(newDate) // Sync calendar to picked date
-    datepickerOpen.value = false    // Close menu
+    datepickerOpen.value = false    // Close the menu
   }
 
-  function showEventDetail(nativeEvent, { event }) {
-    // Prevent click from bubbling to the calendar background
+  function showEventDetail( nativeEvent, { event }) {
+    // CRITICAL: Prevent the click from bubbling to the calendar background, 
+    // which would immediately trigger a "close" on the menu.
     nativeEvent.stopPropagation()
 
     if (selectedOpen.value) {
       selectedOpen.value = false
+      
       if (selectedEvent.value?.id === event.id) return
     }
 
@@ -265,6 +256,7 @@
   }
 
   function getEventColor(event) {
+    // Generate a consistent color based on teacher ID or Program if no color exists
     if (event.color) return event.color
     
     const colors = ['#5C6BC0', '#26A69A', '#66BB6A', '#FFA726', '#EF5350', '#AB47BC']
@@ -272,11 +264,9 @@
     return colors[index]
   }
 
-  // 7. LIFECYCLE
+  // 6. LIFECYCLE
   onMounted(async () => {
-    //  Fetch schedules directly into the Pinia Store
-    await dataStore.fetchData('schedules')
-
+    await getEvents()
     if (route.query.focus) {
       value.value = new Date(route.query.focus)
       type.value = 'day'

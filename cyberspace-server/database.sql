@@ -54,24 +54,6 @@ insert  into `gallery`(`id`,`title`,`description`,`image_url`,`category`,`create
 (5,'testestes','testes','http://localhost:5000/uploads/1769594669421.png','General','2026-01-28 17:04:29',0),
 (6,'testestest','testest','http://localhost:5000/uploads/1769594678197.png','General','2026-01-28 17:04:38',0);
 
-/*Table structure for table `permissions` */
-
-DROP TABLE IF EXISTS `permissions`;
-
-CREATE TABLE `permissions` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `name` varchar(50) NOT NULL,
-  `description` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-/*Data for the table `permissions` */
-
-insert  into `permissions`(`id`,`name`,`description`) values 
-(1,'registrations.view',NULL),
-(2,'registrations.delete',NULL);
-
 /*Table structure for table `programs` */
 
 DROP TABLE IF EXISTS `programs`;
@@ -127,26 +109,6 @@ insert  into `registrations`(`id`,`parent_name`,`child_name`,`child_age`,`whatsa
 (6,'tester 123','tester',17,'081221123456','Friends/Family',1,'2026-01-28 10:30:00'),
 (7,'3','s',7,'33232','Friends/Family',1,'2026-01-28 11:26:08'),
 (8,'zain','z',9,'088112344321','School Event',1,'2026-01-28 17:38:37');
-
-/*Table structure for table `role_permissions` */
-
--- DROP TABLE IF EXISTS `role_permissions`;
-
--- CREATE TABLE `role_permissions` (
---   `role_id` int NOT NULL,
---   `permission_id` int NOT NULL,
---   PRIMARY KEY (`role_id`,`permission_id`),
---   KEY `permission_id` (`permission_id`),
---   CONSTRAINT `role_permissions_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE,
---   CONSTRAINT `role_permissions_ibfk_2` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE
--- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- /*Data for the table `role_permissions` */
-
--- insert  into `role_permissions`(`role_id`,`permission_id`) values 
--- (1,1),
--- (2,1),
--- (1,2);
 
 /*Table structure for table `roles` */
 
@@ -228,6 +190,61 @@ insert  into `users`(`id`,`username`,`password_hash`,`role_id`,`is_active`,`crea
 (1,'operator','$2b$10$7b40HY12QLp0RI8D4b9bu.itsrWCpBr07Tyg3dcFAnAzio0UNFltK',1,1,'2026-03-12 15:12:54'),
 (2,'admin','$2b$10$7b40HY12QLp0RI8D4b9bu.itsrWCpBr07Tyg3dcFAnAzio0UNFltK',2,1,'2026-03-12 15:12:54'),
 (3,'teacher','$2b$10$7b40HY12QLp0RI8D4b9bu.itsrWCpBr07Tyg3dcFAnAzio0UNFltK',3,1,'2026-03-12 15:12:54');
+
+/*Table structure for table `lessons` */
+
+DROP TABLE IF EXISTS `lessons`;
+
+CREATE TABLE `lessons` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `program_id` INT NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `sequence_order` INT DEFAULT '1',
+  `is_required` TINYINT(1) DEFAULT '1',
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `fk_lessons_programs` (`program_id`),
+  CONSTRAINT `fk_lessons_programs` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+/*Table structure for table `teacher_lesson_progress` */
+
+DROP TABLE IF EXISTS `teacher_lesson_progress`;
+
+CREATE TABLE `teacher_lesson_progress` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `teacher_id` INT NOT NULL,
+  `lesson_id` INT NOT NULL,
+  `status` ENUM('not_started','in_progress','completed') DEFAULT 'not_started',
+  `completed_at` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_teacher_lesson` (`teacher_id`,`lesson_id`),
+  KEY `idx_teacher_status` (`teacher_id`,`status`),
+  KEY `fk_progress_lessons` (`lesson_id`),
+  CONSTRAINT `fk_progress_teacher` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_progress_lessons` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+/*Table structure for table `teacher_certifications` */
+
+DROP TABLE IF EXISTS `teacher_certifications`;
+
+CREATE TABLE `teacher_certifications` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `teacher_id` INT NOT NULL,
+  `program_id` INT NOT NULL,
+  `certificate_code` VARCHAR(100) NOT NULL,
+  `issued_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_certificate_code` (`certificate_code`),
+  UNIQUE KEY `uq_teacher_program` (`teacher_id`,`program_id`),
+  KEY `fk_certifications_programs` (`program_id`),
+  CONSTRAINT `fk_certifications_teacher` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_certifications_programs` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;

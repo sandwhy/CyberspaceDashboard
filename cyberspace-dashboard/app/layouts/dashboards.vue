@@ -47,7 +47,7 @@
           <button @click="isSidebarCollapsed = !isSidebarCollapsed" class="toggle-btn">
             <Menu :size="20" />
           </button>
-          <h2 class="page-title">{{ $route.meta.title || 'Overview' }}</h2>
+          <h2 class="page-title">{{ $route.meta.title || '' }}</h2>
         </div>
 
         <div class="topbar-right">

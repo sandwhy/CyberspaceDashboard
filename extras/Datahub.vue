@@ -20,7 +20,7 @@
         :search="search"
         :is-loading="isLoading"
         :current-view="currentView"
-        :reports="dataStore.reports"
+        :reports="data.reports"
         @go-to-calendar="goToCalendar"
         @edit-schedule="editSchedule"
         @manage-report="manageReport"
@@ -89,29 +89,22 @@
     layout: 'dashboards',
   })
 
-  // 2. COMPOSABLES, STORES & UTILITIES
-  const { isTeacher, canManageUsers, user } = useAuth()
+  // 2. COMPOSABLES & UTILITIES
+  const { isTeacher, canManageUsers } = useAuth()
   const router = useRouter()
   const config = useRuntimeConfig()
-  
-  //  Initialize the Pinia Store
-  const dataStore = useDataStore()
 
-  // 3. REACTIVE STATE (UI & Dialog Controls)
+  // 3. REACTIVE STATE (UI, Dialogs, & Data)
   const currentView = ref('schedules')
   const search = ref('')
+  const isLoading = ref(false)
   const searchColumn = ref('all')
 
-  // Helper function to trigger store fetch for active view
-  function refreshCurrentView() {
-    dataStore.fetchData(currentView.value)
-  }
-
-  // Reset search and fetch new view data on tab change
+  // Reset the search column when the view changes
   function handleViewChange() {
     search.value = ''
-    searchColumn.value = 'all'
-    refreshCurrentView()
+    searchColumn.value = 'all' // Reset to global search
+    fetchData()
   }
   watch(currentView, handleViewChange)
 
@@ -131,17 +124,29 @@
   const selectedSchedule = ref({})
   const selectedReport = ref({})
 
+  // Primary Data Store
+  const data = reactive({
+    reports: [],
+    users: [],
+    schedules: [],
+    programs: [],
+    modules: []
+  })
+
   // 4. CONFIGURATION & MAPS
+  const currentViewLabel = computed(() => {
+    return viewOptions.find(opt => opt.value === currentView.value)?.title || 'Data'
+  })
+
+  const { user } = useAuth()
+
   const viewOptions = [
     { title: 'Reports', value: 'reports' },
     { title: 'Schedules', value: 'schedules' },
     { title: 'Users', value: 'users' },
     { title: 'Programs', value: 'programs' },
+    // { title: 'Modules', value: 'modules' }  
   ]
-
-  const currentViewLabel = computed(() => {
-    return viewOptions.find(opt => opt.value === currentView.value)?.title || 'Data'
-  })
 
   const headersMap = {
     reports: [
@@ -193,9 +198,8 @@
 
   const activeHeaders = computed(() => headersMap[currentView.value])
 
-  //  Reads dynamic view state directly from Pinia Store
   const displayedItems = computed(() => {
-    const rawItems = dataStore[currentView.value] || []
+    const rawItems = data[currentView.value] || []
     if (!search.value) return rawItems
     
     const s = search.value.toLowerCase()
@@ -212,10 +216,41 @@
     })
   })
 
-  // 6. METHODS (UI & Navigation)
+async function fetchData() {
+    isLoading.value = true
+    const token = useCookie('token')
+
+    try {
+      if (currentView.value === 'schedules') {
+        const reportRes = await fetch(`${config.public.apiBase}/api/reports`, {
+          headers: { 'Authorization': `Bearer ${token.value}` } 
+        })
+        data.reports = await reportRes.json()
+      }
+
+      const res = await fetch(`${config.public.apiBase}/api/${currentView.value}`, {
+        headers: { 'Authorization': `Bearer ${token.value}` } 
+      })
+      console.log('The current view is:', currentView.value)
+      const rawData = await res.json()
+
+      // Keep raw date intact for forms, add displayDate for table rendering
+      data[currentView.value] = rawData.map(item => ({
+        ...item,
+        displayDate: item.date ? formatDate(item.date) : '---'
+      }))
+      console.log(data)
+    } catch (err) {
+      console.error("Fetch error:", err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // 7. METHODS (UI & Navigation)
   function hasReport(schedule) {
-    //  Reads reports array from Pinia Store
-    return dataStore.reports.some(r => r.schedule_id === schedule.id)
+    // data.reports is your reactive store of all reports
+    return data.reports.some(r => r.schedule_id === schedule.id)
   }
   
   function goToCalendar(item) {
@@ -224,9 +259,11 @@
   }
 
   async function handleImportConfirm(parsedData) {
+    isLoading.value = true
     const token = useCookie('token')
     
     try {
+      // Send the parsed data to your specific endpoint
       const res = await fetch(`${config.public.apiBase}/api/${currentView.value}/bulk`, {
         method: 'POST',
         headers: { 
@@ -239,15 +276,17 @@
       if (res.ok) {
         alert(`Successfully imported ${parsedData.length} records!`)
         dataActionOpen.value = false
-        refreshCurrentView() // Refresh store data
+        fetchData() // Refresh the main table
       }
     } catch (err) {
       console.error("Import failed:", err)
       alert("Import failed. Check console for details.")
+    } finally {
+      isLoading.value = false
     }
   }
 
-  // 7. METHODS (Form & Dialog Handlers)
+  // 8. METHODS (Form & Dialog Handlers)
   function handleToolbarAction(action) {
     if (action === 'export' || action === 'import') {
       openDataDialog(action)
@@ -288,7 +327,7 @@
     scheduleDialogOpen.value = true
   }
 
-  function editProgram(item) {
+  function editProgram(item){
     selectedProgram.value = { ...item }
     programDialogOpen.value = true
   }
@@ -300,8 +339,7 @@
   }
 
   function manageReport(schedule) {
-    //  Reads reports from Pinia Store
-    const existingReport = dataStore.reports.find(r => r.schedule_id === schedule.id)
+    const existingReport = data.reports.find(r => r.schedule_id === schedule.id)
     if (existingReport) {
       selectedReport.value = { ...existingReport }
       isReportEditMode.value = true
@@ -312,6 +350,6 @@
     reportDialogOpen.value = true
   }
 
-  // 8. LIFECYCLE
-  onMounted(() => refreshCurrentView())
+  // 9. LIFECYCLE
+  onMounted(() => fetchData())
 </script>

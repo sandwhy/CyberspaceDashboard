@@ -105,6 +105,9 @@ router.post('/bulk', authenticateToken, async (req, res) => {
 // POST /api/schedules - Create new entry
 router.post('/', authenticateToken, (req, res) => {
     // console.log('DATA RECEIVED FOR NEW SCHEDULE:', req.body);
+    console.log("----")
+    console.log(req.params)
+    console.log(req.body)
 
     const {
         teacher_id, date, time_start, time_end,

@@ -4,9 +4,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   srcDir: 'app/',
   devtools: { enabled: true },
+
   build: {
     transpile: ['vuetify'],
   },
+
   vite: {
     plugins: [
       vuetify({ autoImport: true }),
@@ -17,6 +19,7 @@ export default defineNuxtConfig({
       },
     },
   },
+
   app: {
     head: {
       title: 'Cyberspace - #BESTINCLASS STEAM Education',
@@ -34,12 +37,19 @@ export default defineNuxtConfig({
       ]
     }
   },
+
   runtimeConfig: {
     public: {
       apiBase: (process.env.BACKEND_URL || 'http://foke-ou.com').replace(/\/$/, '')
     }
   },
+
   devServer: {
     port: parseInt(process.env.PORT || '3000', 10)
-  }
+  },
+
+  modules: ['@pinia/nuxt'],
+  pinia: {
+    storesDirs: ['./stores/**', './custom-folder/stores/**'],
+  },
 })

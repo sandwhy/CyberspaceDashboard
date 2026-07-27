@@ -138,42 +138,15 @@ definePageMeta({
   layout: 'dashboards'
 })
 
+const dataStore = useDataStore()
+
 const registrations = ref([])
 const isLoading = ref(false)
 const error = ref('')
 
-const fetchData = async () => {
-  isLoading.value = true
-  error.value = ''
-
-  const token = useCookie('token')
-  if (!token.value) {
-    navigateTo('/login')
-    return
-  }
-
-  try {
-    const config = useRuntimeConfig()
-    const response = await fetch(`${config.public.apiBase}/api/registrations?limit=5`, {
-      headers: {
-        'Authorization': `Bearer ${token.value}`
-      }
-    })
-
-    if (response.status === 401 || response.status === 403) {
-      token.value = null
-      navigateTo('/login')
-      throw new Error('Session expired')
-    }
-
-    if (!response.ok) throw new Error('Failed to fetch data')
-    registrations.value = await response.json()
-  } catch (e) {
-    if (e.message !== 'Session expired') error.value = e.message
-  } finally {
-    isLoading.value = false
-  }
-}
+// function refreshCurrentView() {
+//   dataStore.fetchData()
+// }
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -190,7 +163,7 @@ const formatPhone = (phone) => {
 }
 
 onMounted(() => {
-  fetchData()
+  // refreshCurrentView()
 })
 </script>
 

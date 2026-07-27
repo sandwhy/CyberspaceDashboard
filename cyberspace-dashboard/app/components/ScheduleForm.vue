@@ -40,7 +40,7 @@
                 :items="teacherList"
                 item-title="username"
                 item-value="id"
-                label="Select a Staff Member"
+                label="Select a User"
                 variant="outlined"
                 prepend-inner-icon="mdi-account-search"
                 :readonly="isTeacher && !isEdit"
@@ -134,9 +134,7 @@
 </template>
 
 <script setup>
-
     // Inside <script setup> in ScheduleForm.vue
-
     const programList = ref([])
     const isProgramsLoading = ref(false)
 
@@ -206,16 +204,24 @@
       localEvent.value = { ...props.eventData }
 
       // UPDATE: Allow both 'teacher' and 'operator' roles to trigger the autofill
-        const canAutofill = isTeacher.value || role === 'operator';
+        const canAutofill = isTeacher|| role === 'operator';
+
+        // console.log("-------Teacherlist for autofill----------")
+        // console.log(user.username)
+        // console.log(isTeacher )
 
         if (canAutofill && !props.isEdit && user?.username) {
           const currentTeacher = teacherList.value.find(t => t.username === user.username)
-        
+
+        // console.log("CURRENT TEACHER") 
+        // console.log(currentTeacher) 
+        // console.log(currentTeacher.id) 
+
         if (currentTeacher) {
           localEvent.value.teacher_id = currentTeacher.id
-          console.log('Successfully Mapped ID:', localEvent.value.teacher_id)
+          console.log('Successfully Mapped ID:', localEvent.value.id)
         } else {
-          console.warn('Username not found in teacherList:', user.username)
+          console.log('Username not found in teacherList:', user.username)
         }
       }
     }

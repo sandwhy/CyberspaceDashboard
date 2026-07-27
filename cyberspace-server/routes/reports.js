@@ -38,7 +38,6 @@ router.get('/', authenticateToken, (req, res) => {
  * Handles creation and renames image to: {scheduleid}-{reportid}-img1.{ext}
  */
 router.post('/', authenticateToken, upload.single('image'), (req, res) => {
-    console.log('going here 1')
     const { 
         schedule_id, teacher_id, invoice_number, date, 
         time_start, time_end, program, module, 
@@ -104,7 +103,6 @@ router.post('/', authenticateToken, upload.single('image'), (req, res) => {
  * Updates report and enforces the same naming pattern if a new image is provided
  */
 router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
-    console.log('going here 2')
     const reportId = req.params.id;
 
     db.query('SELECT * FROM reports WHERE id = ?', [reportId], (err, results) => {

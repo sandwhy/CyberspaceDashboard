@@ -34,11 +34,12 @@ export const useDataStore = defineStore('datahub', () => {
     isLoading.value = true
     const token = useCookie('token').value
 
-    if (!token.value) {
+    if (!token) {
+      console.log('going here')
+      console.log(token.value)
       navigateTo('/login')
       return
     }
-
 
     try {
       // If loading schedules, also fetch reports so Datahub has relationship mapping

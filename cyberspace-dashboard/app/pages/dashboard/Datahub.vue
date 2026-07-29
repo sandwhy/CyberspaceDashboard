@@ -18,7 +18,7 @@
         :headers="activeHeaders"
         :items="displayedItems"
         :search="search"
-        :is-loading="isLoading"
+        :is-loading="dataStore.isLoading"
         :current-view="currentView"
         :reports="dataStore.reports"
         @go-to-calendar="goToCalendar"
@@ -33,10 +33,11 @@
         :headers="activeHeaders"
         :items="displayedItems"
         :search="search"
-        :is-loading="isLoading"
+        :is-loading="dataStore.isLoading"
         @edit-program="editProgram"
       />
     </v-card>
+
     <ClientOnly>
       <ExportImportForm 
         v-model="dataActionOpen"
@@ -48,37 +49,37 @@
         @confirmed="handleImportConfirm"
       />    
     </ClientOnly>
+
     <ReportForm 
       v-model="reportDialogOpen"
       :is-edit="isReportEditMode"
       :report-data="selectedReport"
-      @saved="fetchData"
-      @deleted="fetchData"
+      @saved="refreshCurrentView"
+      @deleted="refreshCurrentView"
     />
 
     <ScheduleForm 
       v-model="scheduleDialogOpen"
       :is-edit="isScheduleEditMode" 
       :event-data="selectedSchedule"
-      @saved="fetchData"
-      @deleted="fetchData"
+      @saved="refreshCurrentView"
+      @deleted="refreshCurrentView"
     />
 
     <ProgramForm 
       v-model="programDialogOpen" 
       :is-edit="!!selectedProgram.id" 
       :program-data="selectedProgram" 
-      @saved="fetchData" 
-      @deleted="fetchData" 
+      @saved="refreshCurrentView" 
+      @deleted="refreshCurrentView" 
     />
 
     <UserForm 
       v-model="userDialogOpen" 
       :user-data="selectedUser" 
-      @saved="fetchData" 
-      @deleted="fetchData" 
+      @saved="refreshCurrentView" 
+      @deleted="refreshCurrentView" 
     />
-
 
   </v-container>
 </template>

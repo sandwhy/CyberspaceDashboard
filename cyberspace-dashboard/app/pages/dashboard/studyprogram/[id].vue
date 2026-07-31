@@ -1,20 +1,20 @@
 <template>
-  <v-container fluid class="pa-0 h-100">
-    <v-row no-gutters class="h-100">
+  <div class="program-viewer-wrapper">
+    <v-row no-gutters class="fill-height">
       
-      <v-col cols="12" md="4" lg="3" class="border-e bg-surface d-flex flex-column sidebar-col">
-        
-        <div class="pa-4 border-b">
+      <v-col cols="12" md="4" lg="3" class="sidebar-col border-e bg-surface d-flex flex-column">
+        <div class="pa-3 border-b flex-shrink-0">
           <v-btn
             variant="text"
-            size="small"
+            size="x-small"
             prepend-icon="mdi-arrow-left"
-            class="mb-2 text-none"
+            class="mb-1 text-none px-0"
+            color="primary"
             @click="router.push('/dashboard')"
           >
             Back to Dashboard
           </v-btn>
-          <div class="text-h6 font-weight-bold truncate">
+          <div class="text-subtitle-1 font-weight-bold text-truncate">
             {{ currentProgram?.title || 'Study Program' }}
           </div>
           <div class="text-caption text-medium-emphasis">
@@ -24,12 +24,8 @@
 
         <div class="pa-2 overflow-y-auto flex-grow-1">
           <div class="d-flex align-center justify-space-between px-2 mb-2">
-            <span class="text-caption text-uppercase font-weight-bold text-grey">
-              Lessons List
-            </span>
-            <v-chip size="x-small" color="primary" variant="flat">
-              {{ lessons.length }}
-            </v-chip>
+            <span class="text-overline font-weight-bold text-grey">Lessons</span>
+            <v-chip size="x-small" color="primary" variant="flat">{{ lessons.length }}</v-chip>
           </div>
 
           <v-progress-linear v-if="isLoading" indeterminate color="primary" class="mb-2" />
@@ -47,91 +43,87 @@
               <template #prepend>
                 <v-icon :icon="getLessonIcon(lesson.type)" size="small" class="mr-2" />
               </template>
-
-              <v-list-item-title class="font-weight-medium">
+              
+              <v-list-item-title class="text-body-2 font-weight-medium text-truncate">
                 {{ lesson.title }}
               </v-list-item-title>
 
               <template #append>
                 <v-chip size="x-small" :color="lesson.is_required ? 'warning' : 'grey'" variant="outlined">
-                  {{ lesson.is_required ? 'Required' : 'Optional' }}
+                  {{ lesson.is_required ? 'Req' : 'Opt' }}
                 </v-chip>
               </template>
             </v-list-item>
 
             <v-sheet v-if="!lessons.length" class="pa-4 text-center text-caption text-grey">
-              No lessons available for this program.
+              No lessons available.
             </v-sheet>
           </v-list>
         </div>
       </v-col>
 
-      <v-col cols="12" md="8" lg="9" class="bg-background d-flex flex-column h-100 overflow-y-auto pa-6">
+      <v-col cols="12" md="8" lg="9" class="content-col bg-background d-flex flex-column">
         <template v-if="activeLesson">
-          <div class="d-flex align-center justify-space-between mb-4 pb-3 border-b">
-            <div>
-              <div class="text-caption text-uppercase color-primary font-weight-bold">
-                Type: {{ activeLesson.type }}
-              </div>
-              <h1 class="text-h5 font-weight-bold">
+          <div class="pa-3 px-4 border-b bg-surface d-flex align-center justify-space-between flex-shrink-0">
+            <div class="d-flex align-center ga-2 text-truncate">
+              <v-chip size="small" color="primary" variant="tonal" class="text-uppercase font-weight-bold">
+                {{ activeLesson.type }}
+              </v-chip>
+              <h2 class="text-subtitle-1 font-weight-bold text-truncate mb-0">
                 {{ activeLesson.title }}
-              </h1>
+              </h2>
             </div>
-
-            <v-btn
-              color="success"
-              prepend-icon="mdi-check-circle"
-              variant="tonal"
-              @click="markCompleted"
-            >
-              Mark Completed
-            </v-btn>
           </div>
 
-          <v-card variant="outlined" class="pa-4 rounded-lg flex-grow-1 bg-surface">
-            
-            <div v-if="activeLesson.type === 'document'" class="h-100 d-flex flex-column">
-              <iframe
-                v-if="activeLesson.pdf_url || activeLesson.pdfUrl"
-                :src="activeLesson.pdf_url || activeLesson.pdfUrl"
-                width="100%"
-                height="650px"
-                class="rounded border-0"
-              ></iframe>
-              <v-alert v-else type="info" variant="tonal">
-                No PDF URL available for this lesson.
-              </v-alert>
-            </div>
+          <div class="viewer-body-scroll pa-4 flex-grow-1 overflow-y-auto">
+            <PdfViewer
+              v-if="activeLesson.type === 'document'"
+              :pdf-url="activeLesson.data"
+              :title="activeLesson.title"
+            />
 
-            <div
-              v-else-if="activeLesson.type === 'text'"
-              class="lesson-text-content pa-2"
-              v-html="activeLesson.data"
-            ></div>
+            <VideoViewer
+              v-else-if="activeLesson.type === 'video'"
+              :video-url="activeLesson.data"
+              :title="activeLesson.title"
+            />
 
-            <div v-else-if="activeLesson.type === 'quiz'">
-              <QuizViewer :quiz-data="activeLesson.data" />
-            </div>
+            <v-card v-else-if="activeLesson.type === 'text'" variant="outlined" class="pa-4 bg-surface rounded-lg">
+              <div class="text-body-2" v-html="activeLesson.data"></div>
+            </v-card>
 
-          </v-card>
+            <QuizViewer
+              v-else-if="activeLesson.type === 'quiz'"
+              :quiz-data="activeLesson.data"
+            />
+          </div>
+
+          <div class="pa-3 px-4 border-t bg-surface d-flex align-center justify-end flex-shrink-0">
+            <v-btn
+              color="success"
+              prepend-icon="mdi-check-circle-outline"
+              variant="flat"
+              size="small"
+              class="font-weight-bold"
+              @click="markCompleted"
+            >
+              Mark as Complete
+            </v-btn>
+          </div>
         </template>
 
-        <v-sheet v-else class="d-flex flex-column align-center justify-center fill-height rounded-lg border pa-6">
-          <v-icon icon="mdi-book-open-page-variant" size="64" color="grey" class="mb-2" />
-          <div class="text-h6 text-grey">Select a lesson from the left sidebar to start studying</div>
+        <v-sheet v-else class="d-flex flex-column align-center justify-center fill-height bg-background pa-6">
+          <v-icon icon="mdi-book-open-page-variant" size="48" color="grey" class="mb-2" />
+          <div class="text-body-2 text-grey">Select a lesson from the left sidebar to start studying</div>
         </v-sheet>
       </v-col>
 
     </v-row>
-  </v-container>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-
-definePageMeta({
-  layout: 'dashboards'
-})
+definePageMeta({ layout: 'dashboards' })
 
 const route = useRoute()
 const router = useRouter()
@@ -143,15 +135,14 @@ const lessons = ref([])
 const activeLesson = ref(null)
 const isLoading = ref(false)
 
-// Extract current program details from Pinia store
 const currentProgram = computed(() => {
   return dataStore.programs?.find(p => String(p.id) === String(programId.value))
 })
 
-// Returns specific icons based on lesson type
 const getLessonIcon = (type) => {
   switch (type) {
     case 'document': return 'mdi-file-pdf-box'
+    case 'video': return 'mdi-youtube'
     case 'text': return 'mdi-text-box-outline'
     case 'quiz': return 'mdi-help-circle-outline'
     default: return 'mdi-book-outline'
@@ -166,16 +157,15 @@ const fetchProgramLessons = async () => {
   isLoading.value = true
   try {
     const token = useCookie('token').value
-    const response = await fetch(`${config.public.apiBase}/api/lessons?programId=${programId.value}`, {
+    const res = await fetch(`${config.public.apiBase}/api/lessons?program_id=${programId.value}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-
-    if (!response.ok) throw new Error('Failed to fetch lessons')
     
-    const result = await response.json()
-    lessons.value = Array.isArray(result) ? result : (result.data || [])
-
-    // Automatically select the first lesson by default
+    if (!res.ok) throw new Error('Failed to load lessons')
+    
+    const data = await res.json()
+    lessons.value = Array.isArray(data) ? data : (data.data || [])
+    
     if (lessons.value.length > 0) {
       activeLesson.value = lessons.value[0]
     }
@@ -191,24 +181,26 @@ const markCompleted = () => {
 }
 
 onMounted(async () => {
-  // Ensure store programs are available
   if (!dataStore.programs?.length) {
     await dataStore.fetchData('programs')
   }
   await fetchProgramLessons()
 })
-
-watch(() => route.params.id, () => {
-  fetchProgramLessons()
-})
 </script>
 
 <style scoped>
-.sidebar-col {
-  height: calc(100vh - 64px);
+/* Subtracts the topbar offset (~70px) so content fits inside viewport */
+.program-viewer-wrapper {
+  height: calc(100vh - 70px);
+  overflow: hidden;
 }
-.lesson-text-content {
-  line-height: 1.6;
-  font-size: 1.05rem;
+
+.sidebar-col,
+.content-col {
+  height: 100%;
+}
+
+.viewer-body-scroll {
+  height: 100%;
 }
 </style>

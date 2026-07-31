@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path'); // <-- ADD THIS
 
 const db = require('./db');
 const initDatabase = require('./database');
@@ -14,8 +15,6 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // ---------- Routes
-// register
-// registrations
 app.use('/api/users', require('./routes/users'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/schedules', require('./routes/schedules'));
@@ -26,8 +25,9 @@ app.use('/api/programs', require('./routes/programs'));
 app.use('/api/lessons', require('./routes/lessons'));
 app.use('/api/testRoutes', require('./routes/test'));
 
-// ---------- Start
-app.use('/uploads', express.static('uploads'));
+// Serves files inside "public/uploads" under the "/uploads" endpoint
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 const mysql = require('mysql2');
 

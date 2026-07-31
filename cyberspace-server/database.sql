@@ -195,18 +195,19 @@ insert  into `users`(`id`,`username`,`password_hash`,`role_id`,`is_active`,`crea
 
 DROP TABLE IF EXISTS `lessons`;
 
-CREATE TABLE `lessons` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `program_id` INT NOT NULL,
-  `title` VARCHAR(255) NOT NULL,
-  `sequence_order` INT DEFAULT '1',
-  `is_required` TINYINT(1) DEFAULT '1',
-  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `fk_lessons_programs` (`program_id`),
-  CONSTRAINT `fk_lessons_programs` FOREIGN KEY (`program_id`) REFERENCES `programs` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
+CREATE TABLE
+  `lessons` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `program_id` INT NOT NULL,
+    `title` VARCHAR(255) NOT NULL,
+    `type` ENUM('document', 'video', 'quiz') NOT NULL DEFAULT 'document',
+    `data` LONGTEXT DEFAULT NULL,
+    `sequence_order` INT DEFAULT '1',
+    `is_required` TINYINT(1) DEFAULT '1',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+  ); 
 
 /*Table structure for table `teacher_lesson_progress` */
 

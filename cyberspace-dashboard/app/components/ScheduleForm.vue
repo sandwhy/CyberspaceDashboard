@@ -197,7 +197,7 @@
     }
   }
 
-    // 4. Watchers & Lifecycle
+  // 4. Watchers & Lifecycle
   watch(() => props.modelValue, async (isOpen) => {
     if (isOpen) {
       await Promise.all([fetchTeachers(), fetchPrograms()])

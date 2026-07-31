@@ -1,4 +1,5 @@
 // stores/useDataStore.js
+import { RotateCwSquare } from 'lucide-vue-next'
 import { defineStore } from 'pinia'
 import { toLocalISO } from '~/utils/dateFormats' // Import your date utility
 
@@ -10,6 +11,8 @@ export const useDataStore = defineStore('datahub', () => {
   const users = ref([])
   const schedules = ref([])
   const programs = ref([])
+  const lessons = ref([])
+  const certificates = ref([])
   const isLoading = ref(false)
 
   // 1. Transformer: Convert DB schedules into calendar-friendly events
@@ -35,8 +38,8 @@ export const useDataStore = defineStore('datahub', () => {
     const token = useCookie('token').value
 
     if (!token) {
-      console.log('going here')
-      console.log(token.value)
+      // console.log('going here')
+      // console.log(token.value)
       navigateTo('/login')
       return
     }
@@ -67,7 +70,11 @@ export const useDataStore = defineStore('datahub', () => {
         users.value = rawData
       } else if (currentView === 'programs') {
         programs.value = rawData
-      }
+      } else if (currentView === 'lessons') {
+        console.log("[---dataStore lessons---]")
+        console.log(rawData)
+        lessons.value = rawData
+      } 
 
     } catch (err) {
       console.error('Fetch error:', err)

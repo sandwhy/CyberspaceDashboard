@@ -54,10 +54,6 @@
                 </v-chip>
               </template>
             </v-list-item>
-
-            <v-sheet v-if="!lessons.length" class="pa-4 text-center text-caption text-grey">
-              No lessons available.
-            </v-sheet>
           </v-list>
         </div>
       </v-col>
@@ -95,16 +91,27 @@
             <QuizViewer
               v-else-if="activeLesson.type === 'quiz'"
               :quiz-data="activeLesson.data"
+              @quiz-passed="onQuizPassed"
             />
           </div>
 
-          <div class="pa-3 px-4 border-t bg-surface d-flex align-center justify-end flex-shrink-0">
+          <div class="pa-3 px-4 border-t bg-surface d-flex align-center justify-space-between flex-shrink-0">
+            <div class="text-caption text-medium-emphasis">
+              <span v-if="activeLesson.type === 'quiz' && !isQuizPassed" class="text-error font-weight-bold">
+                🔒 Complete all quiz questions correctly to unlock completion.
+              </span>
+              <span v-else class="text-success font-weight-bold">
+                ✓ Ready to mark complete.
+              </span>
+            </div>
+
             <v-btn
               color="success"
               prepend-icon="mdi-check-circle-outline"
               variant="flat"
               size="small"
               class="font-weight-bold"
+              :disabled="isCompleteDisabled"
               @click="markCompleted"
             >
               Mark as Complete
@@ -134,10 +141,29 @@ const programId = computed(() => route.params.id)
 const lessons = ref([])
 const activeLesson = ref(null)
 const isLoading = ref(false)
+const isQuizPassed = ref(false)
 
 const currentProgram = computed(() => {
   return dataStore.programs?.find(p => String(p.id) === String(programId.value))
 })
+
+const isCompleteDisabled = computed(() => {
+  if (!activeLesson.value) return true
+  // Lock button for quiz lessons unless 100% passed
+  if (activeLesson.value.type === 'quiz') {
+    return !isQuizPassed.value
+  }
+  return false
+})
+
+const selectLesson = (lesson) => {
+  activeLesson.value = lesson
+  isQuizPassed.value = false // Reset quiz state when switching lessons
+}
+
+const onQuizPassed = (passedStatus) => {
+  isQuizPassed.value = passedStatus
+}
 
 const getLessonIcon = (type) => {
   switch (type) {
@@ -149,10 +175,6 @@ const getLessonIcon = (type) => {
   }
 }
 
-const selectLesson = (lesson) => {
-  activeLesson.value = lesson
-}
-
 const fetchProgramLessons = async () => {
   isLoading.value = true
   try {
@@ -160,15 +182,9 @@ const fetchProgramLessons = async () => {
     const res = await fetch(`${config.public.apiBase}/api/lessons?program_id=${programId.value}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    
-    if (!res.ok) throw new Error('Failed to load lessons')
-    
     const data = await res.json()
     lessons.value = Array.isArray(data) ? data : (data.data || [])
-    
-    if (lessons.value.length > 0) {
-      activeLesson.value = lessons.value[0]
-    }
+    if (lessons.value.length > 0) selectLesson(lessons.value[0])
   } catch (err) {
     console.error('Error fetching lessons:', err)
   } finally {
@@ -181,15 +197,12 @@ const markCompleted = () => {
 }
 
 onMounted(async () => {
-  if (!dataStore.programs?.length) {
-    await dataStore.fetchData('programs')
-  }
+  if (!dataStore.programs?.length) await dataStore.fetchData('programs')
   await fetchProgramLessons()
 })
 </script>
 
 <style scoped>
-/* Subtracts the topbar offset (~70px) so content fits inside viewport */
 .program-viewer-wrapper {
   height: calc(100vh - 70px);
   overflow: hidden;

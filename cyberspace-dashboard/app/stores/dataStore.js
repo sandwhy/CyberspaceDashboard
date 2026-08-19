@@ -13,6 +13,7 @@ export const useDataStore = defineStore('datahub', () => {
   const programs = ref([])
   const lessons = ref([])
   const certificates = ref([])
+  const lessonsAssignment = ref([])
   const isLoading = ref(false)
 
   // 1. Transformer: Convert DB schedules into calendar-friendly events
@@ -74,7 +75,11 @@ export const useDataStore = defineStore('datahub', () => {
         console.log("[---dataStore lessons---]")
         console.log(rawData)
         lessons.value = rawData
-      } 
+      } else if (currentView === 'lessonsAssignment') { // <-- ADD THIS BLOCK
+        console.log("[---dataStore lessonsAssignment---]")
+        console.log(rawData)
+        lessonsAssignment.value = rawData
+      }
 
     } catch (err) {
       console.error('Fetch error:', err)
@@ -83,5 +88,5 @@ export const useDataStore = defineStore('datahub', () => {
     }
   }
 
-  return { reports, users, schedules, programs, isLoading, fetchData }
+  return { reports, users, schedules, programs, lessons, certificates, lessonsAssignment, isLoading, fetchData }
 })

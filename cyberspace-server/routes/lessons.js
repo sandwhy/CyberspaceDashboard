@@ -1,10 +1,29 @@
-const express           = require('express');
-const router            = express.Router();
-const db                = require('../db');
-const authenticateToken = require('../mdw/auth');
-const multer            = require('multer');
-const path              = require('path');
-const fs                = require('fs');
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const authenticateToken = require('../mdw/auth'); // Adjust path if needed
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// ============================================================
+// Setup Multer for PDF Uploads
+// ============================================================
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = 'uploads/pdf';
+        // Auto-create directory if it doesn't exist
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        // Unique filename to prevent overwriting
+        cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage });
 
 // ============================================================
 // 1. GET /api/lessons
@@ -39,144 +58,28 @@ router.get('/', authenticateToken, (req, res) => {
 
     db.query(query, params, (err, results) => {
         if (err) return res.status(500).json({ message: 'Database error', error: err });
-        res.json(results);
+        res.json({ success: true, data: results });
     });
 });
 
 // ============================================================
-// 2. GET /api/lessons/progress
-// Fetch lesson progress (Teachers get their own; Admins can filter by ?teacher_id=X)
-// ============================================================
-router.get('/progress', authenticateToken, (req, res) => {
-    // Force teachers to view only their own records; admins/operators can specify ?teacher_id=
-    const teacherId = req.user.role === 'teacher' ? req.user.id : (req.query.teacher_id || null);
-
-    let query = `
-        SELECT 
-            tlp.id,
-            tlp.teacher_id,
-            u.username AS teacher_name,
-            tlp.lesson_id,
-            l.title AS lesson_title,
-            l.sequence_order,
-            l.is_required,
-            l.program_id,
-            p.title AS program_title,
-            tlp.status,
-            tlp.completed_at
-        FROM teacher_lesson_progress tlp
-        JOIN users u    ON tlp.teacher_id = u.id
-        JOIN lessons l  ON tlp.lesson_id  = l.id
-        LEFT JOIN programs p ON l.program_id = p.id
-    `;
-
-    const params = [];
-
-    if (teacherId) {
-        query += ` WHERE tlp.teacher_id = ?`;
-        params.push(teacherId);
-    }
-
-    query += ` ORDER BY tlp.teacher_id ASC, l.program_id ASC, l.sequence_order ASC`;
-
-    db.query(query, params, (err, results) => {
-        if (err) return res.status(500).json({ message: 'Database error', error: err });
-        res.json(results);
-    });
-});
-
-
-// ============================================================
-// 3. GET /api/lessons/certifications
-// Fetch earned certificates (Teachers get their own; Admins can view all or filter by ?teacher_id=X)
-// ============================================================
-router.get('/certifications', authenticateToken, (req, res) => {
-    const teacherId = req.user.role === 'teacher' ? req.user.id : (req.query.teacher_id || null);
-
-    let query = `
-        SELECT 
-            tc.id,
-            tc.teacher_id,
-            u.username AS teacher_name,
-            tc.program_id,
-            p.title AS program_title,
-            tc.certificate_code,
-            tc.issued_at
-        FROM teacher_certifications tc
-        JOIN users u    ON tc.teacher_id = u.id
-        JOIN programs p ON tc.program_id = p.id
-    `;
-
-    const params = [];
-
-    if (teacherId) {
-        query += ` WHERE tc.teacher_id = ?`;
-        params.push(teacherId);
-    }
-
-    query += ` ORDER BY tc.issued_at DESC`;
-
-    db.query(query, params, (err, results) => {
-        if (err) return res.status(500).json({ message: 'Database error', error: err });
-        res.json(results);
-    });
-});
-    
-module.exports = router;
-
-// ============================================================
-// Multer Disk Storage Configuration for PDF Uploads
-// ============================================================
-const uploadDir = path.join(__dirname, '../public/uploads/pdf');
-
-// Ensure directory exists
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'lesson-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({
-    storage,
-    limits: { fileSize: 25 * 1024 * 1024 }, // 25MB file limit
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'application/pdf') {
-            cb(null, true);
-        } else {
-            cb(new Error('Only PDF files are allowed!'), false);
-        }
-    }
-});
-
-
-// ============================================================
-// 4. POST /api/lessons
-// Create a new lesson (Handles text fields and optional PDF upload)
+// 2. POST /api/lessons
+// Create a new lesson (Admin/Operator only)
 // ============================================================
 router.post('/', authenticateToken, upload.single('pdf'), (req, res) => {
-    // Restrict creation to admins and operators
-    if (req.user.role === 'teacher') {
+    // Role check: Only admins/operators can create lessons
+    if (['teacher'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Unauthorized: Teachers cannot create lessons' });
     }
 
     const { program_id, title, type, data, sequence_order, is_required } = req.body;
 
-    if (!program_id || !title) {
-        return res.status(400).json({ message: 'program_id and title are required' });
+    if (!title || !program_id) {
+        return res.status(400).json({ message: 'title and program_id are required' });
     }
 
-    // Determine stored value for `data` column
+    // Determine stored data value (either the uploaded file path, or the JSON string for quizzes)
     let lessonData = data || null;
-
-    // If a PDF file was uploaded via multipart form, override `lessonData` with local file path
     if (req.file) {
         lessonData = `/uploads/pdf/${req.file.filename}`;
     }
@@ -196,25 +99,17 @@ router.post('/', authenticateToken, upload.single('pdf'), (req, res) => {
     ];
 
     db.query(query, params, (err, result) => {
-        if (err) {
-            return res.status(500).json({ message: 'Database error', error: err });
-        }
-
-        res.status(201).json({
-            message: 'Lesson created successfully',
-            lessonId: result.insertId,
-            file_url: req.file ? lessonData : null
-        });
+        if (err) return res.status(500).json({ message: 'Database error', error: err });
+        res.status(201).json({ success: true, message: 'Lesson created', id: result.insertId });
     });
 });
 
 // ============================================================
-// PUT /api/lessons/:id
-// Update an existing lesson (Handles text fields & optional new PDF file)
+// 3. PUT /api/lessons/:id
+// Update an existing lesson (Admin/Operator only)
 // ============================================================
 router.put('/:id', authenticateToken, upload.single('pdf'), (req, res) => {
-    // Restrict update to non-teachers
-    if (req.user.role === 'teacher') {
+    if (['teacher'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Unauthorized: Teachers cannot edit lessons' });
     }
 
@@ -225,7 +120,6 @@ router.put('/:id', authenticateToken, upload.single('pdf'), (req, res) => {
         return res.status(400).json({ message: 'title and program_id are required' });
     }
 
-    // Determine stored data value
     let lessonData = data || null;
 
     // If a new PDF file was uploaded, replace lessonData with the new file URL
@@ -233,6 +127,7 @@ router.put('/:id', authenticateToken, upload.single('pdf'), (req, res) => {
         lessonData = `/uploads/pdf/${req.file.filename}`;
     }
 
+    // COALESCE(?, data) ensures we don't accidentally overwrite an existing PDF if they only updated the title
     const query = `
         UPDATE lessons 
         SET 
@@ -256,112 +151,46 @@ router.put('/:id', authenticateToken, upload.single('pdf'), (req, res) => {
     ];
 
     db.query(query, params, (err, result) => {
-        if (err) {
-            return res.status(500).json({ message: 'Database error', error: err });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Lesson not found' });
-        }
-
-        res.json({
-            message: 'Lesson updated successfully',
-            file_url: req.file ? lessonData : undefined
-        });
+        if (err) return res.status(500).json({ message: 'Database error', error: err });
+        if (result.affectedRows === 0) return res.status(404).json({ message: 'Lesson not found' });
+        
+        res.json({ success: true, message: 'Lesson updated successfully' });
     });
 });
 
 // ============================================================
-// GET /api/lessons/:id
-// Fetch a single lesson by ID
-// ============================================================
-router.get('/:id', authenticateToken, (req, res) => {
-    const { id } = req.params;
-
-    const query = `
-        SELECT 
-            l.id,
-            l.program_id,
-            p.title AS program_title,
-            l.title,
-            l.type,
-            l.data,
-            l.sequence_order,
-            l.is_required,
-            l.created_at
-        FROM lessons l
-        LEFT JOIN programs p ON l.program_id = p.id
-        WHERE l.id = ?
-    `;
-
-    db.query(query, [id], (err, results) => {
-        if (err) {
-            return res.status(500).json({ message: 'Database error', error: err });
-        }
-
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'Lesson not found' });
-        }
-
-        return res.json(results[0]);
-    });
-});
-
-// ============================================================
-// DELETE /api/lessons/:id
-// Delete a lesson by ID (Admin/Operator only)
-// Automatically cleans up uploaded PDF files from disk
+// 4. DELETE /api/lessons/:id
+// Delete a lesson (Admin/Operator only)
 // ============================================================
 router.delete('/:id', authenticateToken, (req, res) => {
-    // 1. Role-based access check (Teachers cannot delete lessons)
-    if (req.user && req.user.role === 'teacher') {
-        console.log("[---lessons id delete check---]")
-        console.log(req.user)
-    
+    if (['teacher'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Unauthorized: Teachers cannot delete lessons' });
     }
 
     const { id } = req.params;
 
-    // 2. Fetch the lesson first to check if an uploaded file needs to be removed from storage
-    const selectQuery = `SELECT type, data FROM lessons WHERE id = ?`;
+    // Optional but recommended: Grab the file path before deleting so you can wipe the PDF from the server
+    db.query('SELECT type, data FROM lessons WHERE id = ?', [id], (err, rows) => {
+        if (err) return res.status(500).json({ message: 'Database error', error: err });
+        if (rows.length === 0) return res.status(404).json({ message: 'Lesson not found' });
 
-    db.query(selectQuery, [id], (err, results) => {
-        if (err) {
-            return res.status(500).json({ message: 'Database error', error: err });
-        }
+        const lesson = rows[0];
 
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'Lesson not found' });
-        }
+        // Delete from database
+        db.query('DELETE FROM lessons WHERE id = ?', [id], (deleteErr) => {
+            if (deleteErr) return res.status(500).json({ message: 'Database error', error: deleteErr });
 
-        const lesson = results[0];
-
-        // 3. Delete the lesson record from MySQL
-        const deleteQuery = `DELETE FROM lessons WHERE id = ?`;
-
-        db.query(deleteQuery, [id], (err, result) => {
-            if (err) {
-                return res.status(500).json({ message: 'Database error', error: err });
-            }
-
-            // 4. File Cleanup: If lesson had an uploaded PDF, delete it from disk
-            if (lesson.type === 'document' && lesson.data && lesson.data.startsWith('/uploads/pdf/')) {
-                const relativePath = lesson.data.replace('/uploads/pdf/', '');
-                const filePath = path.join(__dirname, '../uploads/pdf', relativePath);
-
+            // If it was a document, try to delete the actual file from the uploads folder to save space
+            if (lesson.type === 'document' && lesson.data) {
+                const filePath = path.join(__dirname, '..', lesson.data); // Adjust relative path based on your folder structure
                 fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr && unlinkErr.code !== 'ENOENT') {
-                        console.error('Failed to delete uploaded PDF file:', unlinkErr);
-                    }
+                    if (unlinkErr) console.warn(`Failed to delete file ${filePath}:`, unlinkErr.message);
                 });
             }
 
-            return res.json({ 
-                success: true, 
-                message: 'Lesson deleted successfully',
-                deletedId: Number(id)
-            });
+            res.json({ success: true, message: 'Lesson deleted successfully' });
         });
     });
 });
+
+module.exports = router;

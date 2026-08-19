@@ -109,12 +109,17 @@
   }
 
   // Reset search and fetch new view data on tab change
-  function handleViewChange() {
+  watch(currentView, async (newView) => {
+    // 1. Reset search states so the DatahubToolbar doesn't break
+    // trying to filter by a column that doesn't exist in the new table
     search.value = ''
-    searchColumn.value = 'all'
-    refreshCurrentView()
-  }
-  watch(currentView, handleViewChange)
+    
+    // 2. Clear the selected column (or set it to the first available header)
+    searchColumn.value = null 
+
+    // 3. Fetch the new data
+    await dataStore.fetchData(newView)
+  }, { immediate: true })
 
   // Dialog Controls
   const userDialogOpen = ref(false)
@@ -134,10 +139,11 @@
 
   // 4. CONFIGURATION & MAPS
   const viewOptions = [
-    { title: 'Reports', value: 'reports' },
     { title: 'Schedules', value: 'schedules' },
-    { title: 'Users', value: 'users' },
     { title: 'Programs', value: 'programs' },
+    { title: 'Users', value: 'users' },
+    // { title: 'Lessons', value: 'lessons' },
+    { title: 'Assignments', value: 'lessonsAssignment' } // <-- ADD THIS
   ]
 
   const currentViewLabel = computed(() => {
@@ -175,12 +181,19 @@
       { title: 'Description', key: 'description' },
       { title: 'ID', key: 'id' },
       { title: 'Status', key: 'is_active' }
-    ]
+    ],
+    lessonsAssignment: [
+    { title: 'Teacher', key: 'teacher_name' }, // assuming you join user table to get name
+    { title: 'Program', key: 'program_title' }, // assuming you join program table
+    { title: 'Assigned By', key: 'assigned_by' },
+    { title: 'Assigned At', key: 'assigned_at' },
+    { title: 'Actions', key: 'actions', sortable: false, align: 'end' }
+  ]
   }
 
   // 5. COMPUTED PROPERTIES
   const isTableView = computed(() => {
-    return ['schedules', 'users', 'reports'].includes(currentView.value)
+    return ['schedules', 'users', 'reports', 'lessonsAssignment', 'lessons'].includes(currentView.value)
   })
 
   const filteredOptions = computed(() => {

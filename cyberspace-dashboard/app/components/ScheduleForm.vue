@@ -21,7 +21,7 @@
               prepend-inner-icon="mdi-school"
               hide-details="auto"
               class="mb-4"
-              :loading="isProgramsLoading"
+              :loading="dataStore.isLoading"
               :return-object="false"
               hint="Select a program or type a new one"
               persistent-hint
@@ -44,7 +44,7 @@
                 variant="outlined"
                 prepend-inner-icon="mdi-account-search"
                 :readonly="isTeacher && !isEdit"
-                :loading="isLoading"
+                :loading="dataStore.isLoading"
                 placeholder="Search by name..."
                 class="mb-4"
                 style="max-width: 450px;"
@@ -134,31 +134,9 @@
 </template>
 
 <script setup>
-    // Inside <script setup> in ScheduleForm.vue
-    const programList = ref([])
-    const isProgramsLoading = ref(false)
-
-    // Fetch programs from the database
-    const fetchPrograms = async () => {
-      isProgramsLoading.value = true
-      const config = useRuntimeConfig()
-      const token = useCookie('token').value
-      try {
-        const res = await fetch(`${config.public.apiBase}/api/programs`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        const data = await res.json()
-        // We only want active programs for the selection
-        programList.value = data.filter(p => p.is_active === 1)
-      } catch (err) {
-        console.error("Failed to load programs:", err)
-      } finally {
-        isProgramsLoading.value = false
-      }
-    }
-
   // 1. Logic Imports
   const { isTeacher, user, role } = useAuth()
+  const dataStore = useDataStore() // Initialize the Pinia Store
   
   const props = defineProps({
     modelValue: Boolean,
@@ -168,8 +146,6 @@
   const emit = defineEmits(['update:modelValue', 'saved', 'deleted'])
 
   // 2. Reactive State
-  const teacherList = ref([])
-  const isLoading = ref(false)
   const deleteConfirmDialog = ref(false)
   const localEvent = ref({ ...props.eventData })
   const updateMode = ref('single')
@@ -179,43 +155,34 @@
     set: (val) => emit('update:modelValue', val)
   })
 
-  // 3. API Actions
-  const fetchTeachers = async () => {
-    isLoading.value = true
-    const config = useRuntimeConfig()
-    const token = useCookie('token').value
-    try {
-      const res = await fetch(`${config.public.apiBase}/api/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await res.json()
-      teacherList.value = data.filter(u => u.role_name && u.role_name !== 'unregistered')
-    } catch (err) {
-      console.error("Fetch failed:", err)
-    } finally {
-      isLoading.value = false
-    }
-  }
+  // 3. Computed Data from Store (Replaces local fetch logic)
+  const programList = computed(() => {
+    return dataStore.programs.filter(p => p.is_active === 1)
+  })
+
+  const teacherList = computed(() => {
+    return dataStore.users.filter(u => u.role_name && u.role_name !== 'unregistered')
+  })
 
   // 4. Watchers & Lifecycle
   watch(() => props.modelValue, async (isOpen) => {
     if (isOpen) {
-      await Promise.all([fetchTeachers(), fetchPrograms()])
+      // Only fetch from API if the store doesn't already have the data
+      const fetchPromises = []
+      if (dataStore.users.length === 0) fetchPromises.push(dataStore.fetchData('users'))
+      if (dataStore.programs.length === 0) fetchPromises.push(dataStore.fetchData('programs'))
+      
+      if (fetchPromises.length > 0) {
+        await Promise.all(fetchPromises)
+      }
+
       localEvent.value = { ...props.eventData }
 
-      // UPDATE: Allow both 'teacher' and 'operator' roles to trigger the autofill
-        const canAutofill = isTeacher|| role === 'operator';
+      // Autofill logic for 'teacher' and 'operator'
+      const canAutofill = isTeacher || role === 'operator';
 
-        // console.log("-------Teacherlist for autofill----------")
-        // console.log(user.username)
-        // console.log(isTeacher )
-
-        if (canAutofill && !props.isEdit && user?.username) {
-          const currentTeacher = teacherList.value.find(t => t.username === user.username)
-
-        // console.log("CURRENT TEACHER") 
-        // console.log(currentTeacher) 
-        // console.log(currentTeacher.id) 
+      if (canAutofill && !props.isEdit && user?.username) {
+        const currentTeacher = teacherList.value.find(t => t.username === user.username)
 
         if (currentTeacher) {
           localEvent.value.teacher_id = currentTeacher.id
@@ -227,47 +194,45 @@
     }
   }, { immediate: true })
 
+  // 5. API Actions (Save / Remove)
   const save = async () => {
-  const config = useRuntimeConfig()
-  const token = useCookie('token').value
-  const url = props.isEdit 
-    ? `${config.public.apiBase}/api/schedules/${localEvent.value.id}` 
-    : `${config.public.apiBase}/api/schedules`
+    const config = useRuntimeConfig()
+    const token = useCookie('token').value
+    const url = props.isEdit 
+      ? `${config.public.apiBase}/api/schedules/${localEvent.value.id}` 
+      : `${config.public.apiBase}/api/schedules`
 
-  const payload = {
-    ...localEvent.value,
-    mode: updateMode.value 
-  }
-
-  console.log('sent:', JSON.stringify(payload))
-
-  try {
-    const res = await fetch(url, {
-      method: props.isEdit ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    })
-    
-    if (res.ok) {
-      emit('saved')
-      showDialog.value = false
-    } else {
-      const errorData = await res.json()
-      alert(errorData.message || "Save failed")
+    const payload = {
+      ...localEvent.value,
+      mode: updateMode.value 
     }
-  } catch (err) {
-    console.error("Save error:", err)
+
+    try {
+      const res = await fetch(url, {
+        method: props.isEdit ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+      
+      if (res.ok) {
+        emit('saved') // Datahub.vue will handle triggering the refresh
+        showDialog.value = false
+      } else {
+        const errorData = await res.json()
+        alert(errorData.message || "Save failed")
+      }
+    } catch (err) {
+      console.error("Save error:", err)
+    }
   }
-}
 
   const remove = async () => {
     const config = useRuntimeConfig()
     const token = useCookie('token').value
     
-    // NEW: Pass mode and freq info as query parameters for the DELETE route
     const queryParams = new URLSearchParams({
       mode: updateMode.value,
       freq_id: localEvent.value.freq_id || '',

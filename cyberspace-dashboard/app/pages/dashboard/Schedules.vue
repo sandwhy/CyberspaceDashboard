@@ -1,4 +1,5 @@
 <template>
+  <!--  -->
   <div class="d-flex flex-column" style="height: 100vh; overflow: hidden;">
     <v-sheet class="d-flex align-center pa-2 border-b" tile style="height: 42pt">
       <v-btn variant="text" icon @click="$refs.calendar.prev()">
@@ -168,13 +169,10 @@
   import { ref, onMounted, computed, nextTick } from 'vue'
   import { useRoute } from 'vue-router'
   import { formatTime, getTodayISO } from '~/utils/dateFormats'
-
-  // 1. PAGE META & ROUTING
   definePageMeta({ layout: 'dashboards' })
   const route = useRoute()
 
   // 2. STORES & COMPOSABLES
-  //  Nuxt automatically imports useDataStore from ~/stores/useDataStore.js
   const dataStore = useDataStore()
 
   //  Read schedule events dynamically from the Pinia Store

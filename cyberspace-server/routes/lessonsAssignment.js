@@ -5,14 +5,33 @@ const authenticateToken = require('../mdw/auth');
 
 // GET /api/lessonsassignment
 router.get('/', authenticateToken, (req, res) => {
-    db.query('SELECT * FROM teacher_program_assignments', (err, results) => {
+    const query = `
+        SELECT 
+            p.id,
+            p.title AS program_title,
+            p.lesson_status AS status,
+            (SELECT COUNT(*) FROM lessons l WHERE l.program_id = p.id) AS lessons_count,
+            (
+                SELECT GROUP_CONCAT(u.username SEPARATOR ', ')
+                FROM teacher_program_assignments tpa
+                JOIN users u ON tpa.teacher_id = u.id
+                WHERE tpa.program_id = p.id
+            ) AS assigned_teachers
+        FROM programs p
+        ORDER BY p.id ASC
+    `;
+
+    db.query(query, (err, results) => {
         if (err) {
             console.error('Database error:', err);
-            return res.status(500).json({ message: 'Database error' });
+            return res.status(500).json({ success: false, message: 'Database error' });
         }
+              console.log('--- lessonsAssignment: get all lessonsassignment ---')
+      console.log(results)
         res.json(results);
     });
 });
+
 
 // ============================================================
 // 1. GET /api/lessonsAssignment/program/:programId
@@ -26,7 +45,7 @@ router.get('/program/:programId', authenticateToken, (req, res) => {
       tpa.teacher_id, 
       tpa.assigned_at,
       tpa.assigned_by,
-      u.name AS teacher_name,
+      u.username AS teacher_name,
       u.email AS teacher_email
     FROM teacher_program_assignments tpa
     JOIN users u ON tpa.teacher_id = u.id

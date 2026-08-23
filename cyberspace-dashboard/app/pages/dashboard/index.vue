@@ -113,7 +113,7 @@ const headers = [
   { title: 'Program Title', align: 'start', key: 'title' },
   { title: 'Status', align: 'center', key: 'lesson_status' },
   { title: 'Content Size', align: 'center', key: 'lessonCount' },
-  // { title: 'Assigned Teachers', align: 'start', key: 'teachers', sortable: false },
+  { title: 'Assigned Teachers', align: 'start', key: 'teachers', sortable: false },
   { title: 'Actions', align: 'end', key: 'actions', sortable: false },
 ]
 

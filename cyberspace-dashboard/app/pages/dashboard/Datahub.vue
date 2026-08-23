@@ -26,6 +26,8 @@
         @manage-report="manageReport"
         @edit-report="editReport"
         @edit-user="editUser"
+
+        @edit-program-assignment="openAssignmentDialog"
       />
 
       <DatahubProgramsGrid
@@ -94,8 +96,6 @@
   const { isTeacher, canManageUsers, user } = useAuth()
   const router = useRouter()
   const config = useRuntimeConfig()
-  
-  //  Initialize the Pinia Store
   const dataStore = useDataStore()
 
   // 3. REACTIVE STATE (UI & Dialog Controls)
@@ -113,10 +113,8 @@
     // 1. Reset search states so the DatahubToolbar doesn't break
     // trying to filter by a column that doesn't exist in the new table
     search.value = ''
-    
     // 2. Clear the selected column (or set it to the first available header)
     searchColumn.value = null 
-
     // 3. Fetch the new data
     await dataStore.fetchData(newView)
   }, { immediate: true })
@@ -140,6 +138,7 @@
   // 4. CONFIGURATION & MAPS
   const viewOptions = [
     { title: 'Schedules', value: 'schedules' },
+    { title: 'Reports', value: 'reports' },
     { title: 'Programs', value: 'programs' },
     { title: 'Users', value: 'users' },
     // { title: 'Lessons', value: 'lessons' },
@@ -183,12 +182,13 @@
       { title: 'Status', key: 'is_active' }
     ],
     lessonsAssignment: [
-    { title: 'Teacher', key: 'teacher_name' }, // assuming you join user table to get name
-    { title: 'Program', key: 'program_title' }, // assuming you join program table
-    { title: 'Assigned By', key: 'assigned_by' },
-    { title: 'Assigned At', key: 'assigned_at' },
-    { title: 'Actions', key: 'actions', sortable: false, align: 'end' }
-  ]
+    { key: 'id', title: 'ID', sortable: true },
+    { key: 'program_title', title: 'Program Title', sortable: true },
+    { key: 'lessons_count', title: 'Lessons', sortable: true },
+    { key: 'status', title: 'Status', sortable: true },
+    { key: 'assigned_teachers', title: 'Assigned Teachers', sortable: false },
+    { key: 'actions', title: 'Actions', sortable: false, align: 'center' }
+    ]
   }
 
   // 5. COMPUTED PROPERTIES

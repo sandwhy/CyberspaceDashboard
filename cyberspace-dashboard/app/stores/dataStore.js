@@ -53,7 +53,8 @@ export const useDataStore = defineStore('datahub', () => {
         })
         reports.value = await reportRes.json()
       }
-
+      console.log('--- current currentview---')
+      console.log(currentView)
       const res = await fetch(`${config.public.apiBase}/api/${currentView}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -63,21 +64,28 @@ export const useDataStore = defineStore('datahub', () => {
       if (currentView === 'schedules') {
         schedules.value = schedulesToEvents(rawData)
       } else if (currentView === 'reports') {
+        console.log("[---dataStore reports---]")
+
         reports.value = rawData.map(r => ({
           ...r,
           displayDate: r.date ? toLocalISO(r.date) : '---'
         }))
+        console.log(rawData)
       } else if (currentView === 'users') {
+        console.log("[---dataStore users---]")
+
         users.value = rawData
       } else if (currentView === 'programs') {
+        console.log("[---dataStore programs---]")
+
         programs.value = rawData
       } else if (currentView === 'lessons') {
         console.log("[---dataStore lessons---]")
-        console.log(rawData)
+        // console.log(rawData)
         lessons.value = rawData
       } else if (currentView === 'lessonsAssignment') { // <-- ADD THIS BLOCK
         console.log("[---dataStore lessonsAssignment---]")
-        console.log(rawData)
+        // console.log(rawData)
         lessonsAssignment.value = rawData
       }
 

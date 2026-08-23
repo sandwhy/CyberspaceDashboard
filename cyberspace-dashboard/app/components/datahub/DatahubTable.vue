@@ -6,6 +6,7 @@
     :loading="isLoading"
     class="elevation-0"
   >
+  <!-- ### Schedules table -->
     <template v-slot:item.teacher_name="{ item }">
       <div class="d-flex align-center py-2">
         <span class="text-grey text-caption mr-2 font-weight-bold">#{{ item.teacher_id }}</span>
@@ -13,6 +14,24 @@
           {{ item.teacher_name }}
         </v-chip>
       </div>
+    </template>
+  <!-- ### Assignments table -->
+    <template v-slot:item.assigned_teachers="{ item }">
+      <div v-if="item.assigned_teachers" class="d-flex flex-wrap ga-1 py-1">
+
+        <v-chip 
+          v-for="(teacherName, idx) in item.assigned_teachers.split(',')" 
+          :key="idx" 
+          size="small" 
+          color="info" 
+          variant="outlined"
+          class="font-weight-medium" 
+        >
+          {{ teacherName.trim() }}
+        </v-chip>
+        
+      </div>
+      <span v-else class="text-grey text-caption font-italic">Unassigned</span>
     </template>
 
     <template v-slot:item.date="{ item }">
@@ -28,7 +47,7 @@
         <span class="font-weight-bold">{{ item.time_start?.slice(0,5) }} — {{ item.time_end?.slice(0,5) }}</span>
       </div>
     </template>
-
+  <!-- Programs table -->
     <template v-slot:item.program="{ item }">
       <div class="d-flex flex-column align-center py-1">
         <span class="text-orange-lighten-2 font-weight-bold text-subtitle-2" style="line-height: 1.2">
@@ -54,14 +73,67 @@
     <template v-slot:item.summary="{ value }">
       <span class="text-white text-caption">{{ value || '---' }}</span>
     </template>
+    
+    <!-- lessons columns -->
+    <template v-slot:item.lessons_count="{ item }">
+      <div class="d-flex align-center font-weight-bold text-white">
+        <v-icon size="small" color="orange-lighten-2" class="mr-2">mdi-book-open-variant</v-icon>
+        {{ item.lessons_count || 0 }}
+      </div>
+    </template>
+    <template v-slot:item.status="{ item }">
+      <v-chip 
+        :color="item.status === 'active' || item.is_active ? 'success' : 'grey'" 
+        size="small" 
+        variant="flat"
+        class="text-uppercase font-weight-bold"
+      >
+        {{ item.status || (item.is_active ? 'Active' : 'Inactive') }}
+      </v-chip>
+    </template>
+    <template v-slot:item.teachers="{ item }">
+
+      <div v-if="item.teachers && item.teachers.length > 0" class="d-flex flex-wrap ga-1 py-1">
+        <v-chip 
+          v-for="teacher in item.teachers" 
+          :key="teacher.id" 
+          size="small" 
+          color="info" 
+          variant="outlined"
+        >
+          {{ teacher.username || teacher.name }}
+        </v-chip>
+      </div>
+      <span v-else class="text-grey text-caption font-italic">Unassigned</span>
+    </template>
 
     <template v-slot:item.actions="{ item }">
       <div class="d-flex justify-center ga-1">
         <v-btn v-if="currentView === 'schedules'" icon="mdi-eye" size="x-small" variant="text" title="View in Calendar" color="info" @click="$emit('go-to-calendar', item)"></v-btn>
         <v-btn v-if="currentView === 'schedules'" icon="mdi-pencil" size="x-small" variant="text" title="Edit Event" color="warning" @click="$emit('edit-schedule', item)"></v-btn>
         <v-btn v-if="currentView === 'schedules'" icon="mdi-file-document-edit-outline" size="x-small" title="Reports" variant="text" :color="hasReport(item) ? 'grey' : 'success'" :disabled="hasReport(item)" @click="$emit('manage-report', item)" ></v-btn>
+       
         <v-btn v-if="currentView === 'reports'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="$emit('edit-report', item)"></v-btn>
         <v-btn v-if="currentView === 'users'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="$emit('edit-user', item)"></v-btn>
+        
+        <v-btn 
+          v-if="currentView === 'lessonsAssignment'" 
+          icon="mdi-account-multiple-plus" 
+          size="x-small" 
+          variant="text" 
+          title="Assign Teachers" 
+          color="warning" 
+          @click="$emit('edit-program-assignment', item)"
+        ></v-btn>
+        <v-btn 
+          v-if="currentView === 'lessonsAssignment'" 
+          icon="mdi-book-plus-multiple" 
+          size="x-small" 
+          variant="text" 
+          title="Create Lessons" 
+          color="success" 
+          to="/dashboard/createLessons"
+        ></v-btn>
       </div>
     </template>
   </v-data-table>
@@ -79,6 +151,9 @@
       default: () => []
     }
   })
+
+  // console.log('here')
+  // console.log(items)
 
   defineEmits(['go-to-calendar', 'edit-schedule', 'manage-report', 'edit-report', 'edit-user'])
 

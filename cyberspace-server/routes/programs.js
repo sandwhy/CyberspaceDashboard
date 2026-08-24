@@ -5,21 +5,13 @@ const upload            = require('../upload');
 const authenticateToken = require('../mdw/auth');
 const fs                = require('fs');
 
-// GET /api/programs - public, active only
+// GET /api/programs 
 router.get('/', (req, res) => {
     db.query('SELECT * FROM programs ORDER BY sort_order ASC', (err, results) => {
         if (err) return res.status(500).json({ message: 'Database error', error: err });
         res.json(results);
     });
 });
-
-// // GET /api/programs/all - admin, all programs
-// router.get('/all', authenticateToken, (req, res) => {
-//     db.query('SELECT * FROM programs ORDER BY sort_order ASC', (err, results) => {
-//         if (err) return res.status(500).json({ message: 'Database error', error: err });
-//         res.json(results);
-//     });
-// });
 
 // POST /api/programs
 router.post('/', authenticateToken, upload.single('image'), (req, res) => {
@@ -56,7 +48,7 @@ router.post('/', authenticateToken, upload.single('image'), (req, res) => {
 
 // PUT /api/programs/:id
 router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
-    const { title, age_range, description, bg_color, sort_order, is_active } = req.body;
+    const { title, age_range, description, bg_color, sort_order, is_active, lesson_status } = req.body;
 
     db.query('SELECT * FROM programs WHERE id = ?', [req.params.id], (err, results) => {
         if (err || results.length === 0) {
@@ -81,7 +73,7 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
         }
 
         db.query(
-            'UPDATE programs SET title=?, age_range=?, description=?, image_url=?, bg_color=?, sort_order=?, is_active=? WHERE id=?',
+            'UPDATE programs SET title=?, age_range=?, description=?, image_url=?, bg_color=?, sort_order=?, is_active=?, lesson_status=? WHERE id=?',
             [
                 title       || c.title,
                 age_range   || c.age_range,
@@ -90,6 +82,7 @@ router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
                 bg_color    || c.bg_color,
                 parsedSortOrder,
                 isActiveInt,
+                lesson_status,
                 req.params.id
             ],
             (err) => {

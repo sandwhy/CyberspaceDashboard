@@ -13,9 +13,25 @@
             label="Choose Program"
             variant="outlined"
             density="compact"
-            hide-details
+            class="mb-2"
             :loading="isLoadingLessons"
             @update:model-value="onProgramChange"
+          />
+
+          <!-- Program Status 3-Type Toggle under Selected Program -->
+          <v-select
+            v-if="selectedProgram"
+            v-model="selectedProgram.lesson_status"
+            :items="[
+              { title: 'Draft', value: 'draft' },
+              { title: 'Active', value: 'active' },
+              { title: 'Inactive', value: 'inactive' }
+            ]"
+            label="Program Status *"
+            variant="outlined"
+            density="compact"
+            hide-details
+            @update:model-value="saveProgramStatus"
           />
         </div>
 
@@ -45,8 +61,11 @@
                 {{ lesson.title || 'Untitled Lesson' }}
               </v-list-item-title>
 
-              <v-list-item-subtitle>
+              <v-list-item-subtitle class="d-flex align-center ga-2 mt-1">
                 <span class="text-capitalize">{{ lesson.type || 'document' }}</span>
+                <v-chip size="x-small" :color="lesson.status === 'active' ? 'success' : 'grey'" variant="tonal" class="text-uppercase">
+                  {{ lesson.status || 'draft' }}
+                </v-chip>
               </v-list-item-subtitle>
             </v-list-item>
 
@@ -75,6 +94,19 @@
               { title: 'Quiz (JSON)', value: 'quiz' }
             ]"
             label="Format Type *"
+            variant="outlined"
+            density="compact"
+            class="mb-2"
+          />
+
+          <v-select
+            v-model="activeLesson.status"
+            :items="[
+              { title: 'Draft', value: 'draft' },
+              { title: 'Active', value: 'active' },
+              { title: 'Inactive', value: 'inactive' }
+            ]"
+            label="Lesson Status *"
             variant="outlined"
             density="compact"
             class="mb-2"
@@ -182,6 +214,9 @@ definePageMeta({
   layout: 'dashboards'
 })
 
+import { useRoute } from 'vue-router'
+const route = useRoute()
+
 const dataStore = useDataStore()
 const config = useRuntimeConfig()
 
@@ -192,11 +227,14 @@ const pdfFile = ref(null)
 const isLoadingLessons = ref(false)
 const isSaving = ref(false)
 
+const selectedProgram = computed(() => {
+  return dataStore.programs.find(p => p.id === selectedProgramId.value) || null
+})
+
 const activeLesson = computed(() => {
   return filteredLessons.value[activeLessonIndex.value] || null
 })
 
-// Fetch lessons for the chosen program from GET /api/lessons?program_id=X
 const fetchLessonsForProgram = async (programId) => {
   if (!programId) return
   isLoadingLessons.value = true
@@ -207,10 +245,8 @@ const fetchLessonsForProgram = async (programId) => {
       headers: { Authorization: `Bearer ${token}` }
     })
     const rawData = await res.json()
-    // Assign fetched array directly from Express API
     filteredLessons.value = Array.isArray(rawData) ? rawData : (rawData.data || [])
     activeLessonIndex.value = 0
-
   } catch (err) {
     console.error('Failed to fetch lessons:', err)
   } finally {
@@ -223,6 +259,29 @@ const onProgramChange = (programId) => {
   fetchLessonsForProgram(programId)
 }
 
+const saveProgramStatus = async (newStatus) => {
+  if (!selectedProgramId.value) return
+  const token = useCookie('token').value
+  console.log('--- createlessons saveprogramstatus')
+  console.log(selectedProgram.value)
+  console.log(selectedProgram.value.id)
+  try {
+    const response = await fetch(`${config.public.apiBase}/api/programs/${selectedProgram.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ lesson_status: newStatus })
+    })
+    
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.message || 'Failed to update program status')
+  } catch (err) {
+    console.error('Error updating program status:', err.message)
+  }
+}
+
 const selectLesson = (index) => {
   activeLessonIndex.value = index
   pdfFile.value = null
@@ -230,8 +289,7 @@ const selectLesson = (index) => {
 
 const quickCreateNext = () => {
   const nextOrder = filteredLessons.value.length + 1
-  
-  const selectedProg = dataStore.programs.find(p => p.id === selectedProgramId.value)
+  const selectedProg = selectedProgram.value
 
   const newLesson = {
     program_id: selectedProgramId.value,
@@ -240,7 +298,8 @@ const quickCreateNext = () => {
     type: 'document',
     data: '',
     sequence_order: nextOrder,
-    is_required: 1
+    is_required: 1,
+    status: 'draft'
   }
 
   filteredLessons.value.push(newLesson)
@@ -260,6 +319,7 @@ const saveLesson = async () => {
     formData.append('type', activeLesson.value.type || 'document')
     formData.append('sequence_order', activeLesson.value.sequence_order || 1)
     formData.append('is_required', activeLesson.value.is_required ? 1 : 0)
+    formData.append('status', activeLesson.value.status || 'draft')
 
     if (activeLesson.value.type === 'document' && pdfFile.value) {
       formData.append('pdf', pdfFile.value)
@@ -285,7 +345,6 @@ const saveLesson = async () => {
     alert('Lesson saved successfully!')
     pdfFile.value = null
     
-    // Refresh taskbar lessons list
     await fetchLessonsForProgram(selectedProgramId.value)
   } catch (err) {
     alert(`Error: ${err.message}`)
@@ -297,7 +356,13 @@ const saveLesson = async () => {
 onMounted(async () => {
   await dataStore.fetchData('programs')
   if (dataStore.programs.length) {
-    selectedProgramId.value = dataStore.programs[0].id
+    const targetProgramId = route.query.program_id
+
+    if (targetProgramId) {
+      selectedProgramId.value = Number(targetProgramId)
+    } else {
+      selectedProgramId.value = dataStore.programs[0].id
+    }    
     await fetchLessonsForProgram(selectedProgramId.value)
   }
 })

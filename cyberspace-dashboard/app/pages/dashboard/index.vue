@@ -53,6 +53,21 @@
           </template>
 
           <template v-slot:item.actions="{ item }">
+            <!-- Added view program button -->
+            <v-tooltip text="View Study Program" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-eye"
+                  size="small"
+                  variant="text"
+                  color="info"
+                  class="mr-1"
+                  @click="goToStudyProgram(item.id)"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+
             <v-tooltip text="Edit Assigned Teachers" location="top">
               <template v-slot:activator="{ props }">
                 <v-btn
@@ -108,6 +123,9 @@ const programSummary = computed(() => {
 const handleGetPrograms = async () => await dataStore.fetchData('programs')
 const handleGetLessons = async () => await dataStore.fetchData('lessons')
 const goToCreateLesson = () => navigateTo('/dashboard/createLessons')
+
+// Added navigation handler function
+const goToStudyProgram = (id) => navigateTo(`/dashboard/studyprogram/${id}`)
 
 const headers = [
   { title: 'Program Title', align: 'start', key: 'title' },

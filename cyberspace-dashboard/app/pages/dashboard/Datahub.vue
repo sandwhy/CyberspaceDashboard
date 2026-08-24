@@ -26,8 +26,8 @@
         @manage-report="manageReport"
         @edit-report="editReport"
         @edit-user="editUser"
-
-        @edit-program-assignment="openAssignmentDialog"
+        @edit-program-assignment="editProgramAssignment"
+        @go-to-lessons="goToLessons"
       />
 
       <DatahubProgramsGrid
@@ -83,6 +83,12 @@
       @deleted="refreshCurrentView" 
     />
 
+    <AssignTeacherDialog 
+      v-model="assignTeachersOpen" 
+      :program="selectedProgram" 
+      @saved="refreshCurrentView" 
+    />
+
   </v-container>
 </template>
 
@@ -128,6 +134,7 @@
   const isScheduleEditMode = ref(false)
   const dataActionOpen = ref(false)
   const dataActionMode = ref('export')
+  const assignTeachersOpen = ref(false)
 
   // Selected Data for Forms
   const selectedUser = ref({})
@@ -237,9 +244,15 @@
     router.push({ path: '/dashboard/schedules', query: { focus: item.date.split('T')[0] } })
   }
 
+  function goToLessons(item){
+    console.log("--- datahub gotolessons")
+    console.log(item.id)
+    if (!item.id) return
+    router.push({ path: '/dashboard/createLessons', query: { program_id: item.id } })
+  }
+
   async function handleImportConfirm(parsedData) {
     const token = useCookie('token')
-    
     try {
       const res = await fetch(`${config.public.apiBase}/api/${currentView.value}/bulk`, {
         method: 'POST',
@@ -324,6 +337,11 @@
       isReportEditMode.value = false
     }
     reportDialogOpen.value = true
+  }
+
+  function editProgramAssignment(item){
+    selectedProgram.value = item
+    assignTeachersOpen.value = true
   }
 
   // 8. LIFECYCLE

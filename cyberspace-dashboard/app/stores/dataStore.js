@@ -77,13 +77,14 @@ export const useDataStore = defineStore('datahub', () => {
         users.value = rawData
       } else if (currentView === 'programs') {
         console.log("[---dataStore programs---]")
+        // console.log(rawData)
 
         programs.value = rawData
       } else if (currentView === 'lessons') {
         console.log("[---dataStore lessons---]")
         // console.log(rawData)
         lessons.value = rawData
-      } else if (currentView === 'lessonsAssignment') { // <-- ADD THIS BLOCK
+      } else if (currentView === 'lessonsAssignment') {
         console.log("[---dataStore lessonsAssignment---]")
         // console.log(rawData)
         lessonsAssignment.value = rawData

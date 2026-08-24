@@ -12,14 +12,12 @@ const fs = require('fs');
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = 'uploads/pdf';
-        // Auto-create directory if it doesn't exist
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
         cb(null, dir);
     },
     filename: (req, file, cb) => {
-        // Unique filename to prevent overwriting
         cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
     }
 });
@@ -27,7 +25,6 @@ const upload = multer({ storage });
 
 // ============================================================
 // 1. GET /api/lessons
-// Fetch all lessons or filter by ?program_id=X
 // ============================================================
 router.get('/', authenticateToken, (req, res) => {
     const { program_id } = req.query;
@@ -42,6 +39,7 @@ router.get('/', authenticateToken, (req, res) => {
             l.data,
             l.sequence_order,
             l.is_required,
+            p.lesson_status,
             l.created_at
         FROM lessons l
         LEFT JOIN programs p ON l.program_id = p.id
@@ -64,15 +62,13 @@ router.get('/', authenticateToken, (req, res) => {
 
 // ============================================================
 // 2. POST /api/lessons
-// Create a new lesson (Admin/Operator only)
 // ============================================================
-router.post('/', authenticateToken, upload.single('pdf'), (req, res) => {
-    // Role check: Only admins/operators can create lessons
+router.post('/', authenticateToken, upload.single('pdf'), (req, res) => {  // Role check: Only admins/operators can create lessons
     if (['teacher'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Unauthorized: Teachers cannot create lessons' });
     }
 
-    const { program_id, title, type, data, sequence_order, is_required } = req.body;
+    const { program_id, title, type, data, sequence_order, is_required, lesson_status } = req.body;
 
     if (!title || !program_id) {
         return res.status(400).json({ message: 'title and program_id are required' });

@@ -17,19 +17,21 @@
     </template>
   <!-- ### Assignments table -->
     <template v-slot:item.assigned_teachers="{ item }">
-      <div v-if="item.assigned_teachers" class="d-flex flex-wrap ga-1 py-1">
-
+      <div 
+        v-if="item.assigned_teachers" 
+        class="d-flex ga-1 py-1 overflow-x-auto custom-scrollbar" 
+        style="max-width: 250px;" 
+      >
         <v-chip 
-          v-for="(teacherName, idx) in item.assigned_teachers.split(',')" 
+          v-for="(teacher, idx) in item.assigned_teachers.split(',')" 
           :key="idx" 
           size="small" 
           color="info" 
           variant="outlined"
-          class="font-weight-medium" 
+          class="font-weight-medium flex-shrink-0"
         >
-          {{ teacherName.trim() }}
+          {{ teacher.trim() }}
         </v-chip>
-        
       </div>
       <span v-else class="text-grey text-caption font-italic">Unassigned</span>
     </template>
@@ -82,15 +84,11 @@
       </div>
     </template>
     <template v-slot:item.status="{ item }">
-      <v-chip 
-        :color="item.status === 'active' || item.is_active ? 'success' : 'grey'" 
-        size="small" 
-        variant="flat"
-        class="text-uppercase font-weight-bold"
-      >
-        {{ item.status || (item.is_active ? 'Active' : 'Inactive') }}
+      <v-chip :color="getStatusColor(item.status)" size="small" class="text-uppercase font-weight-bold">
+        {{ item.status || 'draft' }}
       </v-chip>
     </template>
+
     <template v-slot:item.teachers="{ item }">
 
       <div v-if="item.teachers && item.teachers.length > 0" class="d-flex flex-wrap ga-1 py-1">
@@ -116,15 +114,15 @@
         <v-btn v-if="currentView === 'reports'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="$emit('edit-report', item)"></v-btn>
         <v-btn v-if="currentView === 'users'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="$emit('edit-user', item)"></v-btn>
         
-        <v-btn 
-          v-if="currentView === 'lessonsAssignment'" 
-          icon="mdi-account-multiple-plus" 
-          size="x-small" 
-          variant="text" 
-          title="Assign Teachers" 
-          color="warning" 
+        <v-btn
+          v-bind="props"
+          icon="mdi-account-edit"
+          size="small"
+          variant="text"
+          color="primary"
           @click="$emit('edit-program-assignment', item)"
         ></v-btn>
+
         <v-btn 
           v-if="currentView === 'lessonsAssignment'" 
           icon="mdi-book-plus-multiple" 
@@ -132,8 +130,9 @@
           variant="text" 
           title="Create Lessons" 
           color="success" 
-          to="/dashboard/createLessons"
+          @click="$emit('go-to-lessons', item)"
         ></v-btn>
+        
       </div>
     </template>
   </v-data-table>
@@ -154,10 +153,43 @@
 
   // console.log('here')
   // console.log(items)
-
-  defineEmits(['go-to-calendar', 'edit-schedule', 'manage-report', 'edit-report', 'edit-user'])
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'active': return 'success'
+    case 'inactive': return 'warning'
+    case 'draft': default: return 'grey'
+  }
+}
+  defineEmits(['go-to-calendar', 'edit-schedule', 'manage-report', 'edit-report', 'edit-user', 'edit-program-assignment', 'go-to-lessons'])
 
   function hasReport(schedule) {
     return props.reports.some(r => r.schedule_id === schedule.id)
   }
 </script>
+
+<style scoped>
+/* Firefox support */
+.custom-scrollbar {
+  scrollbar-width: thin; /* Forces a thinner scrollbar */
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent; /* thumb color | track color */
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 4px; /* Makes the horizontal scrollbar very thin */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Hides the bulky track */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2); /* Subtle, semi-transparent grey/white */
+  border-radius: 10px; /* Soft rounded edges */
+}
+
+/* Optional: Make it slightly brighter when the user hovers over it */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+</style>

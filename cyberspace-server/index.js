@@ -24,6 +24,7 @@ app.use('/api/articles', require('./routes/articles'));
 app.use('/api/programs', require('./routes/programs'));
 app.use('/api/lessons', require('./routes/lessons'));
 app.use('/api/lessonsAssignment', require('./routes/lessonsAssignment'))
+app.use('/api/lessonProgress', require('./routes/lessonsProgress'))
 app.use('/api/testRoutes', require('./routes/test'));
 
 // Serves files inside "public/uploads" under the "/uploads" endpoint

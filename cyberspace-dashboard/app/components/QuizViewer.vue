@@ -8,16 +8,6 @@
             Total Questions: {{ shuffledQuestions.length }}
           </span>
         </div>
-        
-        <v-chip
-          v-if="submitted"
-          :color="allCorrect ? 'success' : 'error'"
-          class="font-weight-bold"
-          size="small"
-        >
-          <v-icon start :icon="allCorrect ? 'mdi-check-circle' : 'mdi-close-circle'" />
-          Score: {{ scorePercentage }}% {{ allCorrect ? '(All Correct!)' : '(Requires 100% to Complete)' }}
-        </v-chip>
       </div>
 
       <v-divider class="mb-3"></v-divider>
@@ -29,13 +19,19 @@
           variant="outlined"
           class="pa-3 mb-3 rounded-lg bg-surface"
         >
-          <div class="text-body-2 font-weight-bold mb-2">
-            {{ qIndex + 1 }}. {{ q.question || 'Untitled Question' }}
+          <div class="d-flex align-center justify-space-between mb-2">
+            <div class="text-body-2 font-weight-bold">
+              {{ qIndex + 1 }}. {{ q.question || 'Untitled Question' }}
+            </div>
+            <v-chip size="x-small" variant="tonal" color="primary" class="text-uppercase">
+              {{ (q.type || 'multiple_choice').replace('_', ' ') }}
+            </v-chip>
           </div>
 
+          <!-- MULTIPLE CHOICE -->
           <v-radio-group
+            v-if="q.type === 'multiple_choice' || !q.type"
             v-model="userAnswers[qIndex]"
-            :disabled="submitted"
             hide-details
             density="compact"
           >
@@ -48,38 +44,31 @@
             />
           </v-radio-group>
 
-          <div v-if="submitted" class="mt-1 text-caption font-weight-bold">
-            <span v-if="userAnswers[qIndex] === q.correct_answer" class="text-success">
-              ✓ Correct
-            </span>
-            <span v-else class="text-error">
-              ✗ Incorrect. Correct answer: {{ q.options[q.correct_answer] }}
-            </span>
-          </div>
-        </v-card>
-
-        <div class="d-flex ga-2 mt-3">
-          <v-btn
-            v-if="!submitted"
-            color="primary"
-            size="small"
-            block
-            @click="submitQuiz"
-          >
-            Submit Quiz
-          </v-btn>
-
-          <v-btn
-            v-else
-            color="secondary"
+          <!-- SHORT ANSWER -->
+          <v-text-field
+            v-else-if="q.type === 'short_answer'"
+            v-model="userAnswers[qIndex]"
+            label="Your Answer"
+            placeholder="Type your short answer here..."
             variant="outlined"
-            size="small"
-            block
-            @click="resetAndReshuffle"
-          >
-            Retake Quiz (Reshuffle Order)
-          </v-btn>
-        </div>
+            density="compact"
+            hide-details
+            class="mt-2"
+          />
+
+          <!-- ESSAY -->
+          <v-textarea
+            v-else-if="q.type === 'essay'"
+            v-model="userAnswers[qIndex]"
+            label="Your Essay Response"
+            placeholder="Write your comprehensive answer here..."
+            variant="outlined"
+            density="compact"
+            rows="4"
+            hide-details
+            class="mt-2"
+          />
+        </v-card>
       </div>
 
       <v-alert v-else type="warning" variant="tonal" class="mt-2">
@@ -90,6 +79,8 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
+
 const props = defineProps({
   quizData: {
     type: [String, Object],
@@ -97,14 +88,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['quiz-passed'])
+const emit = defineEmits(['update-answers'])
 
 const rawQuestions = ref([])
 const shuffledQuestions = ref([])
 const userAnswers = ref({})
-const submitted = ref(false)
 
-// Fisher-Yates shuffle algorithm to randomize question order
 const shuffleArray = (array) => {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -115,10 +104,7 @@ const shuffleArray = (array) => {
 }
 
 const loadAndShuffleQuiz = (dataPayload) => {
-  submitted.value = false
   userAnswers.value = {}
-  emit('quiz-passed', false) // Reset completion lock
-
   if (!dataPayload) {
     rawQuestions.value = []
     shuffledQuestions.value = []
@@ -128,7 +114,6 @@ const loadAndShuffleQuiz = (dataPayload) => {
   try {
     const parsed = typeof dataPayload === 'string' ? JSON.parse(dataPayload) : dataPayload
     rawQuestions.value = parsed.questions || []
-    // Randomize questions order on load
     shuffledQuestions.value = shuffleArray(rawQuestions.value)
   } catch (err) {
     console.warn('Failed to parse quiz JSON:', err)
@@ -141,29 +126,19 @@ watch(() => props.quizData, (newVal) => {
   loadAndShuffleQuiz(newVal)
 }, { immediate: true })
 
-const allCorrect = computed(() => {
-  if (!shuffledQuestions.value.length) return false
-  return shuffledQuestions.value.every((q, idx) => userAnswers.value[idx] === q.correct_answer)
-})
-
-const scorePercentage = computed(() => {
-  if (!shuffledQuestions.value.length) return 0
-  let correctCount = 0
+// Automatically bundle and emit answers whenever user types or selects anything
+watch(userAnswers, () => {
+  const formattedAnswers = {}
   shuffledQuestions.value.forEach((q, idx) => {
-    if (userAnswers.value[idx] === q.correct_answer) {
-      correctCount++
+    const answerValue = userAnswers.value[idx]
+    formattedAnswers[q.id || idx] = {
+      question_id: q.id || idx,
+      type: q.type || 'multiple_choice',
+      question: q.question,
+      answer: answerValue,
+      selected_option_text: (q.type === 'multiple_choice' || !q.type) ? (q.options?.[answerValue] ?? null) : null
     }
   })
-  return Math.round((correctCount / shuffledQuestions.value.length) * 100)
-})
-
-const submitQuiz = () => {
-  submitted.value = true
-  // Emit true ONLY if all questions are answered correctly (100% score)
-  emit('quiz-passed', allCorrect.value)
-}
-
-const resetAndReshuffle = () => {
-  loadAndShuffleQuiz(props.quizData)
-}
+  emit('update-answers', formattedAnswers)
+}, { deep: true })
 </script>

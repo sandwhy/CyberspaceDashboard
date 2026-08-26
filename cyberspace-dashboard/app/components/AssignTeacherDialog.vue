@@ -166,7 +166,6 @@ const saveTeachers = async () => {
   const token = useCookie('token').value
 
   try {
-    // ⚠️ CHANGED: Points to your lessonsAssignment route and uses PUT for bulk replacement
     const url = `${config.public.apiBase}/api/lessonsAssignment/program/${props.program.id}`
     
     const res = await fetch(url, {

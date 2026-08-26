@@ -9,9 +9,6 @@
         <v-btn color="secondary" variant="outlined" class="mr-2" @click="handleGetPrograms">
           Get Programs
         </v-btn>
-        <v-btn color="secondary" variant="outlined" class="mr-2" @click="handleGetLessons">
-          Get Lessons
-        </v-btn>
         <v-btn color="primary" prepend-icon="mdi-plus" @click="goToCreateLesson">
           Create Lesson
         </v-btn>
@@ -121,7 +118,6 @@ const programSummary = computed(() => {
 })
 
 const handleGetPrograms = async () => await dataStore.fetchData('programs')
-const handleGetLessons = async () => await dataStore.fetchData('lessons')
 const goToCreateLesson = () => navigateTo('/dashboard/createLessons')
 
 // Added navigation handler function

@@ -7,6 +7,9 @@ const authenticateToken = require('../mdw/auth');
 // 1. GET /api/lessonsAssignment
 // ============================================================
 router.get('/', authenticateToken, (req, res) => {
+  const wtf = req.body
+  console.log(`--- lessonsassignment`)
+  console.log(`${wtf}`)
     const query = `
         SELECT 
             p.id,
@@ -30,6 +33,56 @@ router.get('/', authenticateToken, (req, res) => {
 });
 
 // ============================================================
+// GET /api/lessonsAssignment/my-assignments
+// Dedicated filtered query for program info, status, and certificate completion
+// ============================================================
+router.get('/my-assignments', authenticateToken, (req, res) => {
+  const teacher_id = req.user.id; // Extracted from authenticated user token
+
+const query = `
+    SELECT 
+      p.id,
+      p.title,
+      p.description,
+      p.lesson_status,
+      p.image_url,
+      p.icon,
+      CASE 
+        WHEN (
+          SELECT COUNT(*) 
+          FROM lessons l 
+          WHERE l.program_id = p.id
+        ) > 0 AND (
+          SELECT COUNT(*) 
+          FROM lessons l 
+          LEFT JOIN teacher_lesson_progress tlp 
+            ON l.id = tlp.lesson_id AND tlp.teacher_id = ?
+          WHERE l.program_id = p.id AND (tlp.status = 'completed')
+        ) = (
+          SELECT COUNT(*) 
+          FROM lessons l 
+          WHERE l.program_id = p.id
+        ) THEN 1 
+        ELSE 0 
+      END AS is_completed
+    FROM teacher_program_assignments tpa
+    JOIN programs p ON tpa.program_id = p.id
+    WHERE tpa.teacher_id = ? 
+      AND p.lesson_status IN ('active', 'inactive') -- <--- ADD THIS FILTER HERE
+    ORDER BY p.id ASC
+  `;
+
+  // Pass teacher_id twice for both subquery checks and the main WHERE clause
+  db.query(query, [teacher_id, teacher_id], (err, results) => {
+    if (err) {
+      console.error('Database error in my-assignments:', err);
+      return res.status(500).json({ success: false, message: 'Database error', error: err });
+    }
+    return res.json({ success: true, data: results });
+  });
+});
+
+// ============================================================
 // 2. GET /api/lessonsAssignment/program/:programId
 // ============================================================
 router.get('/program/:programId', authenticateToken, (req, res) => {
@@ -50,27 +103,7 @@ router.get('/program/:programId', authenticateToken, (req, res) => {
 });
 
 // ============================================================
-// 3. GET /api/lessonsAssignment/teacher/:teacherId
-// ============================================================
-router.get('/teacher/:teacherId', authenticateToken, (req, res) => {
-  const { teacherId } = req.params;
-  const query = `
-    SELECT 
-      tpa.program_id, tpa.assigned_at,
-      p.title AS program_title, p.lesson_status
-    FROM teacher_program_assignments tpa
-    JOIN programs p ON tpa.program_id = p.id
-    WHERE tpa.teacher_id = ?
-  `;
-
-  db.query(query, [teacherId], (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error', error: err });
-    return res.json({ success: true, data: results });
-  });
-});
-
-// ============================================================
-// 5. PUT /api/lessonsAssignment/program/:programId (THE FIX)
+// 5. PUT /api/lessonsAssignment/program/:programId
 // ============================================================
 router.put('/program/:programId', authenticateToken, (req, res) => {
   const assigned_by = req.user.id;

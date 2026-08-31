@@ -12,9 +12,9 @@
         :can-manage-users="canManageUsers"
         @action="handleToolbarAction"
       />
-
-      <DatahubTable
-        v-if="isTableView"
+      <TeacherAssignedLessons v-if="currentView === 'teacherAssignedLessons'" />
+      <DatahubTable 
+        v-else-if="isTableView"
         :headers="activeHeaders"
         :items="displayedItems"
         :search="search"
@@ -29,7 +29,7 @@
         @edit-program-assignment="editProgramAssignment"
         @go-to-lessons="goToLessons"
       />
-
+      
       <DatahubProgramsGrid
         v-else
         :headers="activeHeaders"
@@ -148,8 +148,8 @@
     { title: 'Reports', value: 'reports' },
     { title: 'Programs', value: 'programs' },
     { title: 'Users', value: 'users' },
-    // { title: 'Lessons', value: 'lessons' },
-    { title: 'Assignments', value: 'lessonsAssignment' } // <-- ADD THIS
+    { title: 'My Assigned Lessons', value: 'teacherAssignedLessons' },
+    { title: 'AssignLessons (operator)', value: 'lessonsAssignment' } 
   ]
 
   const currentViewLabel = computed(() => {
@@ -189,18 +189,19 @@
       { title: 'Status', key: 'is_active' }
     ],
     lessonsAssignment: [
-    { key: 'id', title: 'ID', sortable: true },
-    { key: 'program_title', title: 'Program Title', sortable: true },
-    { key: 'lessons_count', title: 'Lessons', sortable: true },
-    { key: 'status', title: 'Status', sortable: true },
-    { key: 'assigned_teachers', title: 'Assigned Teachers', sortable: false },
-    { key: 'actions', title: 'Actions', sortable: false, align: 'center' }
-    ]
+      { key: 'id', title: 'ID', sortable: true },
+      { key: 'program_title', title: 'Program Title', sortable: true },
+      { key: 'lessons_count', title: 'Lessons', sortable: true },
+      { key: 'status', title: 'Status', sortable: true },
+      { key: 'assigned_teachers', title: 'Assigned Teachers', sortable: false },
+      { key: 'actions', title: 'Actions', sortable: false, align: 'center' }
+    ],
+    teacherAssignedLessons: []
   }
 
   // 5. COMPUTED PROPERTIES
   const isTableView = computed(() => {
-    return ['schedules', 'users', 'reports', 'lessonsAssignment', 'lessons'].includes(currentView.value)
+    return ['schedules', 'users', 'reports', 'lessonsAssignment', 'lessons', 'teacherAssignedLessons'].includes(currentView.value)
   })
 
   const filteredOptions = computed(() => {

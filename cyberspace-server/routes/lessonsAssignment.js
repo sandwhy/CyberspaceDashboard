@@ -33,6 +33,28 @@ router.get('/', authenticateToken, (req, res) => {
 });
 
 // ============================================================
+// GET /api/lessonsAssignment/teacher/:teacherId
+// ============================================================
+router.get('/teacher/:teacherId', authenticateToken, (req, res) => {
+  const { teacherId } = req.params;
+  const query = `
+    SELECT 
+      tpa.program_id, 
+      tpa.assigned_at,
+      p.title AS program_title, 
+      p.lesson_status
+    FROM teacher_program_assignments tpa
+    JOIN programs p ON tpa.program_id = p.id
+    WHERE tpa.teacher_id = ?
+  `;
+
+  db.query(query, [teacherId], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error', error: err });
+    return res.json({ success: true, data: results });
+  });
+});
+
+// ============================================================
 // GET /api/lessonsAssignment/my-assignments
 // Dedicated filtered query for program info, status, and certificate completion
 // ============================================================

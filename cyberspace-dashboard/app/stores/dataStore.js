@@ -73,6 +73,7 @@ export const useDataStore = defineStore('datahub', () => {
         console.log(rawData)
       } else if (currentView === 'users') {
         console.log("[---dataStore users---]")
+        console.log(rawData)
 
         users.value = rawData
       } else if (currentView === 'programs') {

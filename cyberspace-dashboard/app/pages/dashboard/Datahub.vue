@@ -13,6 +13,8 @@
         @action="handleToolbarAction"
       />
       <TeacherAssignedLessons v-if="currentView === 'teacherAssignedLessons'" />
+      <TeacherProgressChecker v-if="currentView === 'lessonProgressCheck'" />
+      
       <DatahubTable 
         v-else-if="isTableView"
         :headers="activeHeaders"
@@ -149,7 +151,9 @@
     { title: 'Programs', value: 'programs' },
     { title: 'Users', value: 'users' },
     { title: 'My Assigned Lessons', value: 'teacherAssignedLessons' },
-    { title: 'AssignLessons (operator)', value: 'lessonsAssignment' } 
+    { title: 'Assign Lessons (operator)', value: 'lessonsAssignment' },
+    { title: 'Lesson Progress Check (operator)', value: 'lessonProgressCheck' },
+
   ]
 
   const currentViewLabel = computed(() => {
@@ -186,7 +190,7 @@
       { title: 'Age Range', key: 'age_range' },
       { title: 'Description', key: 'description' },
       { title: 'ID', key: 'id' },
-      { title: 'Status', key: 'is_active' }
+      { title: 'Status', key: 'is_active' },
     ],
     lessonsAssignment: [
       { key: 'id', title: 'ID', sortable: true },
@@ -195,8 +199,7 @@
       { key: 'status', title: 'Status', sortable: true },
       { key: 'assigned_teachers', title: 'Assigned Teachers', sortable: false },
       { key: 'actions', title: 'Actions', sortable: false, align: 'center' }
-    ],
-    teacherAssignedLessons: []
+    ]
   }
 
   // 5. COMPUTED PROPERTIES

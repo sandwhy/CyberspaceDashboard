@@ -4,6 +4,69 @@ const db = require('../db');
 const authenticateToken = require('../mdw/auth');
 
 // ============================================================
+// GET /api/lessonProgress/operator/progress
+// Operator fetches progress for a specific teacher and program
+// ============================================================
+router.get('/operator/progress', authenticateToken, (req, res) => {
+  const { teacher_id, program_id } = req.query;
+
+  if (!teacher_id || !program_id) {
+    return res.status(400).json({ success: false, message: 'teacher_id and program_id are required' });
+  }
+
+  const query = `
+    SELECT 
+      l.id AS lesson_id,
+      l.title,
+      l.type,
+      l.sequence_order,
+      COALESCE(tlp.status, 'not_started') AS status,
+      tlp.quiz_answers,
+      tlp.completed_at
+    FROM lessons l
+    LEFT JOIN teacher_lesson_progress tlp 
+      ON l.id = tlp.lesson_id AND tlp.teacher_id = ?
+    WHERE l.program_id = ?
+    ORDER BY l.sequence_order ASC
+  `;
+
+  db.query(query, [teacher_id, program_id], (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error', error: err });
+    }
+    return res.json({ success: true, lessons_progress: results });
+  });
+});
+
+// ============================================================
+// PUT /api/lessonProgress/operator/lessons/:lessonId/reset
+// Operator updates/resets a specific teacher's lesson status
+// ============================================================
+router.put('/operator/lessons/:lessonId/reset', authenticateToken, (req, res) => {
+  const { lessonId } = req.params;
+  const { teacher_id, status } = req.body;
+
+  if (!teacher_id || !status) {
+    return res.status(400).json({ success: false, message: 'teacher_id and status are required' });
+  }
+
+  const query = `
+    INSERT INTO teacher_lesson_progress (teacher_id, lesson_id, status)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      status = VALUES(status),
+      completed_at = CASE WHEN VALUES(status) = 'completed' THEN NOW() ELSE NULL END
+  `;
+
+  db.query(query, [teacher_id, lessonId, status], (err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error', error: err });
+    }
+    return res.json({ success: true, message: `Lesson status updated to ${status}` });
+  });
+});
+
+// ============================================================
 // POST /api/lessonProgress/lessons/:lessonId
 // Upsert lesson progress with automatic Quiz validation
 // ============================================================

@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path'); // <-- ADD THIS
 
 const db = require('./db');
-const initDatabase = require('./database');
+const exportSchema = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -61,7 +61,7 @@ bootstrapConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``, (err) =
         if (poolErr) return console.error('DB connection failed:', poolErr);
         console.log('✔ Connected to MySQL database via Pool.');
         connection.release();
-        // await initDatabase();
+        // await exportSchema();
     });
 });
 

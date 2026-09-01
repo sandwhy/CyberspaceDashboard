@@ -111,15 +111,16 @@
         <v-btn v-if="currentView === 'schedules'" icon="mdi-pencil" size="x-small" variant="text" title="Edit Event" color="warning" @click="$emit('edit-schedule', item)"></v-btn>
         <v-btn v-if="currentView === 'schedules'" icon="mdi-file-document-edit-outline" size="x-small" title="Reports" variant="text" :color="hasReport(item) ? 'grey' : 'success'" :disabled="hasReport(item)" @click="$emit('manage-report', item)" ></v-btn>
         <v-btn v-if="currentView === 'reports'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="$emit('edit-report', item)"></v-btn>
-        <v-btn v-if="currentView === 'users'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="$emit('edit-user', item)"></v-btn>
+        <v-btn v-if="currentView === 'users'" icon="mdi-pencil" size="x-small" variant="text" color="warning" @click="$emit('edit-program-assignment', item)"></v-btn>
+        
         <v-btn
-          v-if="currentView === 'lessonsAssignment'" 
+          v-if="currentView === 'users'" 
           v-bind="props"
           icon="mdi-account-edit"
           size="small"
           variant="text"
           color="primary"
-          @click="$emit('edit-program-assignment', item)"
+          @click="$emit('edit-user', item)"
         ></v-btn>
 
         <v-btn 

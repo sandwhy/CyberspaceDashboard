@@ -4,14 +4,14 @@
       :model-value="view"
       @update:model-value="$emit('update:view', $event)"
       :items="filteredOptions"
-      label="View Data"
+      item-title="title"
+      item-value="value"
+      label="Select View"
       variant="outlined"
       density="compact"
+      class="mr-2"
       hide-details
-      class="mr-4"
-      style="max-width: 160px"
-      color="primary"
-    ></v-select>
+    />
     
     <v-select
       :model-value="searchColumn"

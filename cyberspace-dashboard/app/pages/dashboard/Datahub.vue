@@ -12,7 +12,8 @@
         :can-manage-users="canManageUsers"
         @action="handleToolbarAction"
       />
-      <TeacherAssignedLessons v-if="currentView === 'teacherAssignedLessons'" />
+      
+      <MyAssignedLessons v-if="currentView === 'teacherAssignedLessons'" />
       <TeacherProgressChecker v-else-if="currentView === 'lessonProgressCheck'" />
       
       <DatahubTable 
@@ -85,9 +86,9 @@
       @deleted="refreshCurrentView" 
     />
 
-    <AssignTeacherDialog 
-      v-model="assignTeachersOpen" 
-      :program="selectedProgram" 
+    <AssignProgramsDialog 
+      v-model="assignProgramsOpen" 
+      :teacher="selectedTeacher" 
       @saved="refreshCurrentView" 
     />
 
@@ -136,13 +137,14 @@
   const isScheduleEditMode = ref(false)
   const dataActionOpen = ref(false)
   const dataActionMode = ref('export')
-  const assignTeachersOpen = ref(false)
+  const assignProgramsOpen = ref(false)
 
   // Selected Data for Forms
   const selectedUser = ref({})
   const selectedProgram = ref({})
   const selectedSchedule = ref({})
   const selectedReport = ref({})
+  const selectedTeacher = ref(null)
 
   // 4. CONFIGURATION & MAPS
   const viewOptions = [
@@ -183,6 +185,7 @@
       { title: 'Id', key: 'id', align: 'start' },
       { title: 'Id - Teacher', key: 'username', align: 'start' },
       { title: 'Role', key: 'role_name', align: 'start' },
+      { key: 'assigned_teachers', title: 'Assigned Teachers', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
     ],
     programs: [
@@ -197,14 +200,13 @@
       { key: 'program_title', title: 'Program Title', sortable: true },
       { key: 'lessons_count', title: 'Lessons', sortable: true },
       { key: 'status', title: 'Status', sortable: true },
-      { key: 'assigned_teachers', title: 'Assigned Teachers', sortable: false },
       { key: 'actions', title: 'Actions', sortable: false, align: 'center' }
     ]
   }
 
   // 5. COMPUTED PROPERTIES
   const isTableView = computed(() => {
-    return ['schedules', 'users', 'reports', 'lessonsAssignment', 'lessons', 'teacherAssignedLessons'].includes(currentView.value)
+    return ['schedules', 'users', 'reports', 'lessonsAssignment', 'lessons'].includes(currentView.value)
   })
 
   const filteredOptions = computed(() => {
@@ -344,10 +346,10 @@
     reportDialogOpen.value = true
   }
 
-  function editProgramAssignment(item){
-    console.log('--- datahub editprogramassignment')
-    selectedProgram.value = item
-    assignTeachersOpen.value = true
+  function editProgramAssignment(item) {
+    console.log('--- datahub editprogramassignment for user:', item.id)
+    selectedTeacher.value = item
+    assignProgramsOpen.value = true
   }
 
   // 8. LIFECYCLE

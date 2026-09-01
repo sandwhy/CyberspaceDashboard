@@ -7,21 +7,12 @@ const authenticateToken = require('../mdw/auth');
 // 1. GET /api/lessonsAssignment
 // ============================================================
 router.get('/', authenticateToken, (req, res) => {
-  const wtf = req.body
-  console.log(`--- lessonsassignment`)
-  console.log(`${wtf}`)
     const query = `
         SELECT 
             p.id,
             p.title AS program_title,
             p.lesson_status AS status,
-            (SELECT COUNT(*) FROM lessons l WHERE l.program_id = p.id) AS lessons_count,
-            (
-                SELECT GROUP_CONCAT(u.username SEPARATOR ', ')
-                FROM teacher_program_assignments tpa
-                JOIN users u ON tpa.teacher_id = u.id
-                WHERE tpa.program_id = p.id
-            ) AS assigned_teachers
+            (SELECT COUNT(*) FROM lessons l WHERE l.program_id = p.id) AS lessons_count
         FROM programs p
         ORDER BY p.id ASC
     `;
@@ -40,12 +31,14 @@ router.get('/teacher/:teacherId', authenticateToken, (req, res) => {
   const query = `
     SELECT 
       tpa.program_id, 
+      tpa.sequence,
       tpa.assigned_at,
       p.title AS program_title, 
       p.lesson_status
     FROM teacher_program_assignments tpa
     JOIN programs p ON tpa.program_id = p.id
     WHERE tpa.teacher_id = ?
+    ORDER BY tpa.sequence ASC
   `;
 
   db.query(query, [teacherId], (err, results) => {
@@ -56,12 +49,9 @@ router.get('/teacher/:teacherId', authenticateToken, (req, res) => {
 
 // ============================================================
 // GET /api/lessonsAssignment/my-assignments
-// Dedicated filtered query for program info, status, and certificate completion
 // ============================================================
 router.get('/my-assignments', authenticateToken, (req, res) => {
-  const teacher_id = req.user.id; // Extracted from authenticated user token
-  // console.log('--- lessonsassignment /my-assignments')
-  // console.log(teacher_id)
+  const teacher_id = req.user.id;
   const query = `
     SELECT 
       p.id,
@@ -70,6 +60,7 @@ router.get('/my-assignments', authenticateToken, (req, res) => {
       p.lesson_status,
       p.image_url,
       p.icon,
+      tpa.sequence,
       CASE 
         WHEN (
           SELECT COUNT(*) 
@@ -91,11 +82,10 @@ router.get('/my-assignments', authenticateToken, (req, res) => {
     FROM teacher_program_assignments tpa
     JOIN programs p ON tpa.program_id = p.id
     WHERE tpa.teacher_id = ? 
-      AND p.lesson_status IN ('active', 'inactive') -- <--- ADD THIS FILTER HERE
-    ORDER BY p.id ASC
+      AND p.lesson_status IN ('active', 'inactive')
+    ORDER BY tpa.sequence ASC
   `;
 
-  // Pass teacher_id twice for both subquery checks and the main WHERE clause
   db.query(query, [teacher_id, teacher_id], (err, results) => {
     if (err) {
       console.error('Database error in my-assignments:', err);
@@ -106,40 +96,17 @@ router.get('/my-assignments', authenticateToken, (req, res) => {
 });
 
 // ============================================================
-// 2. GET /api/lessonsAssignment/program/:programId
+// PUT /api/lessonsAssignment/teacher/:teacherId (Replaces program endpoint)
 // ============================================================
-router.get('/program/:programId', authenticateToken, (req, res) => {
-  const { programId } = req.params;
-  const query = `
-    SELECT 
-      tpa.teacher_id, tpa.assigned_at, tpa.assigned_by,
-      u.username AS teacher_name, u.email AS teacher_email
-    FROM teacher_program_assignments tpa
-    JOIN users u ON tpa.teacher_id = u.id
-    WHERE tpa.program_id = ?
-  `;
-
-  db.query(query, [programId], (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error', error: err });
-    return res.json({ success: true, data: results });
-  });
-});
-
-// ============================================================
-// 5. PUT /api/lessonsAssignment/program/:programId
-// ============================================================
-router.put('/program/:programId', authenticateToken, (req, res) => {
+router.put('/teacher/:teacherId', authenticateToken, (req, res) => {
   const assigned_by = req.user.id;
-  const { programId } = req.params;
-  const { teacherIds } = req.body;
+  const { teacherId } = req.params;
+  const { programs } = req.body; // Expects an array of { program_id, sequence }
 
-  console.log("+++ api/lessonsassignment/program/:programId")
-
-  if (!Array.isArray(teacherIds)) {
-    return res.status(400).json({ success: false, message: 'teacherIds must be an array' });
+  if (!Array.isArray(programs)) {
+    return res.status(400).json({ success: false, message: 'programs must be an array' });
   }
 
-  // Use getConnection to safely lock a connection for the transaction
   db.getConnection((err, connection) => {
     if (err) return res.status(500).json({ success: false, message: 'Connection failed', error: err });
 
@@ -149,8 +116,8 @@ router.put('/program/:programId', authenticateToken, (req, res) => {
         return res.status(500).json({ success: false, message: 'Transaction error', error: err });
       }
 
-      // Step 1: Clear old assignments
-      connection.query('DELETE FROM teacher_program_assignments WHERE program_id = ?', [programId], (err) => {
+      // Step 1: Clear old assignments for this teacher
+      connection.query('DELETE FROM teacher_program_assignments WHERE teacher_id = ?', [teacherId], (err) => {
         if (err) {
           return connection.rollback(() => {
             connection.release();
@@ -158,8 +125,7 @@ router.put('/program/:programId', authenticateToken, (req, res) => {
           });
         }
 
-        // If no new teachers, commit here
-        if (teacherIds.length === 0) {
+        if (programs.length === 0) {
           return connection.commit((err) => {
             if (err) {
               return connection.rollback(() => {
@@ -172,15 +138,12 @@ router.put('/program/:programId', authenticateToken, (req, res) => {
           });
         }
 
-        // Step 2: Insert new roster
-        const values = teacherIds.map(tId => [tId, programId, assigned_by]);
+        // Step 2: Insert new sequenced roster
+        const values = programs.map((p, index) => [teacherId, p.program_id, assigned_by, p.sequence || index + 1]);
         const insertQuery = `
-          INSERT INTO teacher_program_assignments (teacher_id, program_id, assigned_by) 
+          INSERT INTO teacher_program_assignments (teacher_id, program_id, assigned_by, sequence) 
           VALUES ?
         `;
-
-        // console.log(values)
-        // console.log(insertQuery)
 
         connection.query(insertQuery, [values], (err) => {
           if (err) {
@@ -198,7 +161,7 @@ router.put('/program/:programId', authenticateToken, (req, res) => {
               });
             }
             connection.release();
-            return res.json({ success: true, message: 'Program roster updated' });
+            return res.json({ success: true, message: 'Teacher program sequence updated' });
           });
         });
       });

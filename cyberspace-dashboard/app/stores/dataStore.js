@@ -64,7 +64,7 @@ export const useDataStore = defineStore('datahub', () => {
       if (currentView === 'schedules') {
         schedules.value = schedulesToEvents(rawData)
       } else if (currentView === 'reports') {
-        console.log("[---dataStore reports---]")
+        // console.log("[---dataStore reports---]")
 
         reports.value = rawData.map(r => ({
           ...r,
@@ -72,21 +72,21 @@ export const useDataStore = defineStore('datahub', () => {
         }))
         console.log(rawData)
       } else if (currentView === 'users') {
-        console.log("[---dataStore users---]")
+        // console.log("[---dataStore users---]")
         console.log(rawData)
 
         users.value = rawData
       } else if (currentView === 'programs') {
-        console.log("[---dataStore programs---]")
+        // console.log("[---dataStore programs---]")
         // console.log(rawData)
 
         programs.value = rawData
       } else if (currentView === 'lessons') {
-        console.log("[---dataStore lessons---]")
+        // console.log("[---dataStore lessons---]")
         // console.log(rawData)
         lessons.value = rawData
       } else if (currentView === 'lessonsAssignment') {
-        console.log("[---dataStore lessonsAssignment---]")
+        // console.log("[---dataStore lessonsAssignment---]")
         // console.log(rawData)
         lessonsAssignment.value = rawData
       }

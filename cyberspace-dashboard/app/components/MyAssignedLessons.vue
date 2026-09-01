@@ -5,7 +5,7 @@
 
       <div>
         <div class="text-subtitle-2 font-weight-medium text-medium-emphasis mb-2">
-          Your Training Roster
+          Your Training Roster (Linear Progression)
         </div>
         <v-btn color="secondary" variant="outlined" prepend-icon="mdi-refresh" @click="fetchAssignedPrograms">
           Refresh Hub
@@ -21,6 +21,13 @@
           hover
           class="bg-transparent"
         >
+          <!-- Sequence Column -->
+          <template v-slot:item.sequence="{ item }">
+            <v-chip size="small" color="primary" label class="font-weight-bold">
+              #{{ item.sequence }}
+            </v-chip>
+          </template>
+
           <!-- Program Title Column -->
           <template v-slot:item.title="{ item }">
             <div class="font-weight-bold text-body-2">{{ item.title || 'Untitled Program' }}</div>
@@ -36,7 +43,6 @@
 
           <!-- Certificate Status / Action Column -->
           <template v-slot:item.certificate="{ item }">
-            <!-- If certificate exists, show green chip with issue date -->
             <v-chip
               v-if="item.certificateIssuedAt"
               color="success"
@@ -50,7 +56,6 @@
               Issued: {{ new Date(item.certificateIssuedAt).toLocaleDateString() }}
             </v-chip>
             
-            <!-- Otherwise show completed button or pending status -->
             <v-btn
               v-else-if="item.isCompleted"
               color="success"
@@ -73,9 +78,20 @@
             </v-chip>
           </template>
 
-          <!-- Actions Column: Do Lessons Button -->
+          <!-- Actions Column: Do Lessons Button with Prerequisite Lock -->
           <template v-slot:item.actions="{ item }">
             <v-btn
+              v-if="item.isLocked"
+              color="grey"
+              variant="outlined"
+              size="small"
+              prepend-icon="mdi-lock"
+              disabled
+            >
+              Locked (Complete Previous)
+            </v-btn>
+            <v-btn
+              v-else
               color="primary"
               variant="flat"
               size="small"
@@ -105,6 +121,7 @@ const assignedPrograms = ref([])
 const isLoading = ref(false)
 
 const headers = [
+  { title: 'Seq', align: 'start', key: 'sequence', width: '80px' },
   { title: 'Program Info', align: 'start', key: 'title' },
   { title: 'Status', align: 'center', key: 'lesson_status' },
   { title: 'Certificate Status', align: 'center', key: 'certificate', sortable: false },
@@ -119,41 +136,52 @@ const getStatusColor = (status) => {
   }
 }
 
-// Fetch filtered personal assignments and user certificates directly
 const fetchAssignedPrograms = async () => {
   isLoading.value = true
   try {
     const token = useCookie('token').value
     
-    // 1. Fetch assignments
+    // 1. Fetch assignments (already sorted by sequence from backend)
     const res = await fetch(`${config.public.apiBase}/api/lessonsAssignment/my-assignments`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     const data = await res.json()
     const records = Array.isArray(data) ? data : (data.data || [])
 
-    // 2. Fetch user's certificates using the token-based endpoint
+    // 2. Fetch user's certificates
     const certRes = await fetch(`${config.public.apiBase}/api/certificates/my-certificates`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     const certData = await certRes.json()
     const certificates = certData.data || []
 
-    // 3. Map records combining assignment metrics and certificate info
-    assignedPrograms.value = records.map(prog => {
-      // Find a matching certificate for this program
+    // 3. Map and check linear sequence locks
+    const mappedRecords = records.map((prog, index, arr) => {
       const matchingCert = certificates.find(c => Number(c.program_id) === Number(prog.id))
+
+      // Linear prerequisite check:
+      // Program is locked if it is not the first item AND the previous program lacks an issued certificate.
+      let isLocked = false
+      if (index > 0) {
+        const prevProg = arr[index - 1]
+        const prevHasCert = certificates.some(c => Number(c.program_id) === Number(prevProg.id))
+        isLocked = !prevHasCert
+      }
 
       return {
         id: prog.id,
+        sequence: prog.sequence || index + 1,
         title: prog.title || 'Untitled Program',
         description: prog.description,
         lesson_status: prog.lesson_status || 'active',
         isCompleted: Boolean(prog.is_completed),
+        isLocked: isLocked,
         certificateIssuedAt: matchingCert ? matchingCert.issued_at : null,
         certificateCode: matchingCert ? matchingCert.certificate_code : null
       }
     })
+
+    assignedPrograms.value = mappedRecords
   } catch (err) {
     console.error('Error fetching assigned programs hub:', err)
   } finally {
@@ -161,7 +189,6 @@ const fetchAssignedPrograms = async () => {
   }
 }
 
-// Navigation to the study program lesson viewer
 const goToStudyProgram = (id) => {
   router.push(`/dashboard/studyprogram/${id}`)
 }

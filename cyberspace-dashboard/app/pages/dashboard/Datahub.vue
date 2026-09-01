@@ -13,7 +13,7 @@
         @action="handleToolbarAction"
       />
       <TeacherAssignedLessons v-if="currentView === 'teacherAssignedLessons'" />
-      <TeacherProgressChecker v-if="currentView === 'lessonProgressCheck'" />
+      <TeacherProgressChecker v-else-if="currentView === 'lessonProgressCheck'" />
       
       <DatahubTable 
         v-else-if="isTableView"
@@ -210,7 +210,7 @@
   const filteredOptions = computed(() => {
     if (isTeacher) {
       return viewOptions.filter(opt => 
-        ['reports', 'schedules'].includes(opt.value)
+        ['reports', 'schedules', 'teacherAssignedLessons'].includes(opt.value)
       )
     }
     return viewOptions
@@ -309,6 +309,7 @@
   }
 
   function editUser(item) {
+    console.log("--- datahub edituser")
     selectedUser.value = { ...item }
     userDialogOpen.value = true
   }
@@ -344,6 +345,7 @@
   }
 
   function editProgramAssignment(item){
+    console.log('--- datahub editprogramassignment')
     selectedProgram.value = item
     assignTeachersOpen.value = true
   }

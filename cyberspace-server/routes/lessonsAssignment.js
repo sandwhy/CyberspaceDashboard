@@ -60,8 +60,9 @@ router.get('/teacher/:teacherId', authenticateToken, (req, res) => {
 // ============================================================
 router.get('/my-assignments', authenticateToken, (req, res) => {
   const teacher_id = req.user.id; // Extracted from authenticated user token
-
-const query = `
+  // console.log('--- lessonsassignment /my-assignments')
+  // console.log(teacher_id)
+  const query = `
     SELECT 
       p.id,
       p.title,

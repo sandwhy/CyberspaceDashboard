@@ -248,8 +248,8 @@ const fetchLessonProgress = async () => {
     })
     const certData = await certRes.json()
     teacherCertificates.value = certData.data || []
-    // console.log('--- teacherprogesschecker fetchlessonsprogress')
-    // console.log(teacherCertificates)
+    console.log('--- teacherprogesschecker fetchlessonsprogress')
+    console.log(progressData)
   } catch (err) {
     console.error('Failed to fetch progress or certificates:', err)
   }
@@ -266,18 +266,29 @@ const updateStatus = async (lessonId, status) => {
   try {
     const res = await fetch(`${config.public.apiBase}/api/lessonProgress/operator/lessons/${lessonId}/reset`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ teacher_id: selectedTeacherId.value, status })
+      headers: { 
+        'Content-Type': 'application/json', 
+        Authorization: `Bearer ${token}` 
+      },
+      body: JSON.stringify({ 
+        teacher_id: selectedTeacherId.value, 
+        status 
+      })
     })
-    if (res.ok) {
+
+    const data = await res.json()
+    
+    if (res.ok && data.success) {
       quizModalOpen.value = false
-      fetchLessonProgress()
+      await fetchLessonProgress()
+    } else {
+      console.error('Failed to update status:', data.message)
+      alert(data.message || 'Failed to update lesson status.')
     }
   } catch (err) {
-    console.error('Failed to update status:', err)
+    console.error('Network or server error updating status:', err)
   }
 }
-
 const generateCertificate = async () => {
   if (!selectedTeacherId.value || !selectedProgramId.value) return
 

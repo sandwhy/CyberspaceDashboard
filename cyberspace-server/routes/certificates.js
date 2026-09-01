@@ -4,10 +4,17 @@ const db = require('../db');
 const authenticateToken = require('../mdw/auth');
 
 // ============================================================
-// GET /api/certificates - Get all certificates or filter by user and/or program
+// GET /api/certificates - Get certificates (auto-filters by token if user isn't querying explicitly)
 // ============================================================
 router.get('/', authenticateToken, (req, res) => {
-  const { teacher_id, program_id } = req.query;
+  let { teacher_id, program_id } = req.query;
+  
+  // If no teacher_id is explicitly passed, default to the logged-in user's ID
+  // (You can add an admin role check here if admins need to view all certificates by default)
+  if (!teacher_id) {
+    teacher_id = req.user.id;
+  }
+
   let query = `
     SELECT tc.*, 
            u.username AS teacher_username, 
@@ -17,26 +24,54 @@ router.get('/', authenticateToken, (req, res) => {
     JOIN users u ON tc.teacher_id = u.id
     JOIN programs p ON tc.program_id = p.id
     LEFT JOIN users admin ON tc.assigned_by = admin.id
-    WHERE 1=1
+    WHERE tc.teacher_id = ?
   `;
-  const params = [];
+  const params = [Number(teacher_id)];
 
-  if (teacher_id) {
-    query += ` AND tc.teacher_id = ?`;
-    params.push(teacher_id);
-  }
   if (program_id) {
     query += ` AND tc.program_id = ?`;
-    params.push(program_id);
+    params.push(Number(program_id));
   }
 
   query += ` ORDER BY tc.issued_at DESC`;
 
   db.query(query, params, (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error', error: err });
+    if (err) {
+      console.error('Database error in GET /api/certificates:', err);
+      return res.status(500).json({ success: false, message: 'Database error', error: err });
+    }
     res.json({ success: true, data: results });
   });
 });
+
+// ============================================================
+// GET /api/certificates/my-certificates - Get certificates for the currently logged-in user
+// ============================================================
+router.get('/my-certificates', authenticateToken, (req, res) => {
+  const teacher_id = req.user.id; // Extracted securely from the Bearer token middleware
+
+  const query = `
+    SELECT tc.*, 
+           u.username AS teacher_username, 
+           p.title AS program_title, 
+           admin.username AS issued_by_username
+    FROM teacher_certifications tc
+    JOIN users u ON tc.teacher_id = u.id
+    JOIN programs p ON tc.program_id = p.id
+    LEFT JOIN users admin ON tc.assigned_by = admin.id
+    WHERE tc.teacher_id = ?
+    ORDER BY tc.issued_at DESC
+  `;
+
+  db.query(query, [teacher_id], (err, results) => {
+    if (err) {
+      console.error('Database error in GET /api/certificates/my-certificates:', err);
+      return res.status(500).json({ success: false, message: 'Database error', error: err });
+    }
+    res.json({ success: true, data: results });
+  });
+});
+
 // ============================================================
 // POST /api/certificates - Issue a new certificate
 // ============================================================
@@ -61,27 +96,6 @@ router.post('/', authenticateToken, (req, res) => {
       return res.status(500).json({ success: false, message: 'Database error', error: err });
     }
     res.status(201).json({ success: true, message: 'Certificate generated successfully', id: result.insertId });
-  });
-});
-
-// ============================================================
-// 3. PUT /api/certificates/:id - Update an existing certificate code
-// ============================================================
-router.put('/:id', authenticateToken, (req, res) => {
-  const { id } = req.params;
-  const { certificate_code } = req.body;
-
-  if (!certificate_code) {
-    return res.status(400).json({ success: false, message: 'certificate_code is required' });
-  }
-
-  const query = `UPDATE teacher_certifications SET certificate_code = ? WHERE id = ?`;
-
-  db.query(query, [certificate_code, id], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error', error: err });
-    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Certificate not found' });
-    
-    res.json({ success: true, message: 'Certificate updated successfully' });
   });
 });
 

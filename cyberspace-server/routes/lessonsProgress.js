@@ -39,34 +39,6 @@ router.get('/operator/progress', authenticateToken, (req, res) => {
 });
 
 // ============================================================
-// PUT /api/lessonProgress/operator/lessons/:lessonId/reset
-// Operator updates/resets a specific teacher's lesson status
-// ============================================================
-router.put('/operator/lessons/:lessonId/reset', authenticateToken, (req, res) => {
-  const { lessonId } = req.params;
-  const { teacher_id, status } = req.body;
-
-  if (!teacher_id || !status) {
-    return res.status(400).json({ success: false, message: 'teacher_id and status are required' });
-  }
-
-  const query = `
-    INSERT INTO teacher_lesson_progress (teacher_id, lesson_id, status)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      status = VALUES(status),
-      completed_at = CASE WHEN VALUES(status) = 'completed' THEN NOW() ELSE NULL END
-  `;
-
-  db.query(query, [teacher_id, lessonId, status], (err, result) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Database error', error: err });
-    }
-    return res.json({ success: true, message: `Lesson status updated to ${status}` });
-  });
-});
-
-// ============================================================
 // POST /api/lessonProgress/lessons/:lessonId
 // Upsert lesson progress with automatic Quiz validation
 // ============================================================
@@ -136,6 +108,37 @@ router.post('/lessons/:lessonId', authenticateToken, (req, res) => {
         }
       });
     });
+  });
+});
+
+// ============================================================
+// PUT /api/lessonProgress/operator/lessons/:lessonId/reset
+// ============================================================
+router.put('/operator/lessons/:lessonId/reset', authenticateToken, (req, res) => {
+  const { lessonId } = req.params;
+  const { teacher_id, status } = req.body;
+
+  if (!teacher_id || !status) {
+    return res.status(400).json({ success: false, message: 'teacher_id and status are required' });
+  }
+
+  const query = `
+    UPDATE teacher_lesson_progress 
+    SET status = ? 
+    WHERE teacher_id = ? AND lesson_id = ?
+  `;
+
+  db.query(query, [status, teacher_id, lessonId], (err, result) => {
+    if (err) {
+      console.error('Database error updating lesson status:', err);
+      return res.status(500).json({ success: false, message: 'Database error', error: err });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Progress record not found' });
+    }
+
+    res.json({ success: true, message: 'Status updated successfully' });
   });
 });
 

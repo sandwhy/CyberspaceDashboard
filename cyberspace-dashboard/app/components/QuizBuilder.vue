@@ -21,10 +21,16 @@
         class="pa-4 rounded-lg bg-surface relative-card mb-3"
       >
         <div class="d-flex align-center justify-space-between mb-2">
-          <v-chip size="small" color="primary" label class="font-weight-bold">
-            Question #{{ qIndex + 1 }}
+          <v-chip 
+            size="small" 
+            :color="q.type === 'admin_notes' ? 'orange-darken-2' : 'primary'" 
+            label 
+            class="font-weight-bold"
+          >
+            {{ q.type === 'admin_notes' ? 'Admin Notes (System Default)' : `Question #${qIndex + 1}` }}
           </v-chip>
           <v-btn
+            v-if="q.type !== 'admin_notes'"
             icon="mdi-delete-outline"
             color="error"
             variant="text"
@@ -34,10 +40,12 @@
         </div>
 
         <v-row density="compact">
-          <v-col cols="12" sm="8">
+          <v-col cols="12" :sm="q.type === 'admin_notes' ? 12 : 8">
             <v-text-field
               v-model="q.question"
-              label="Question Prompt *"
+              :label="q.type === 'admin_notes' ? 'Section Title' : 'Question Prompt *'"
+              :readonly="q.type === 'admin_notes'"
+              :disabled="q.type === 'admin_notes'"
               placeholder="e.g. What does API stand for?"
               variant="outlined"
               density="compact"
@@ -45,7 +53,7 @@
             />
           </v-col>
 
-          <v-col cols="12" sm="4">
+          <v-col v-if="q.type !== 'admin_notes'" cols="12" sm="4">
             <v-select
               v-model="q.type"
               :items="[
@@ -62,7 +70,20 @@
           </v-col>
         </v-row>
 
-        <div v-if="q.type === 'multiple_choice'" class="mt-4 pt-2 border-t">
+        <!-- ADMIN NOTES CONTENT EDITOR -->
+        <div v-if="q.type === 'admin_notes'" class="mt-3">
+          <v-textarea
+            v-model="q.answer"
+            label="Admin Notes Content"
+            placeholder="Enter instructions or notes for administrators/teachers..."
+            variant="outlined"
+            density="compact"
+            rows="3"
+            hide-details
+          />
+        </div>
+
+        <div v-else-if="q.type === 'multiple_choice'" class="mt-4 pt-2 border-t">
           <div class="text-caption text-grey font-weight-bold mb-2">
             Options (Click radio button to mark correct answer):
           </div>
@@ -140,9 +161,11 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
+
 const props = defineProps({
   modelValue: {
-    type: String, // Expects JSON string or empty string
+    type: String,
     default: ''
   }
 })
@@ -151,44 +174,66 @@ const emit = defineEmits(['update:modelValue'])
 
 const questions = ref([])
 
-// 1. Initialize questions array from incoming JSON prop
+// Ensures Admin Notes always exists and sits at the bottom of the array
+const ensureAdminNotesAtBottom = (arr) => {
+  // Filter out any existing admin notes to prevent duplicates
+  const filtered = arr.filter(q => q.type !== 'admin_notes')
+  
+  // Push a fresh admin notes object to the very end
+  filtered.push({
+    id: 'admin_notes_default',
+    type: 'admin_notes',
+    question: 'Admin Notes',
+    answer: ''
+  })
+  return filtered
+}
+
 watch(
   () => props.modelValue,
   (newVal) => {
     if (!newVal) {
-      if (questions.value.length === 0) questions.value = []
+      questions.value = ensureAdminNotesAtBottom([])
       return
     }
     try {
       const parsed = typeof newVal === 'string' ? JSON.parse(newVal) : newVal
-      questions.value = parsed.questions || []
+      questions.value = ensureAdminNotesAtBottom(parsed.questions || [])
     } catch (e) {
       console.warn('Failed to parse quiz JSON, starting fresh.', e)
-      questions.value = []
+      questions.value = ensureAdminNotesAtBottom([])
     }
   },
   { immediate: true }
 )
 
-// 2. Automatically sync questions array back as JSON string
 watch(
   questions,
   (updatedQuestions) => {
-    const payload = JSON.stringify({ questions: updatedQuestions })
+    // Make sure admin notes stays at the bottom even if someone triggers re-ordering
+    const payload = JSON.stringify({ questions: ensureAdminNotesAtBottom(updatedQuestions) })
     emit('update:modelValue', payload)
   },
   { deep: true }
 )
 
-// Helper Actions
 const addQuestion = () => {
-  questions.value.push({
+  // Insert new questions right before the last item (which is reserved for Admin Notes)
+  const newQuestion = {
     id: Date.now(),
     type: 'multiple_choice',
     question: '',
     options: ['Option 1', 'Option 2'],
     correct_answer: 0
-  })
+  }
+  
+  const notesItem = questions.value.find(q => q.type === 'admin_notes')
+  const otherQuestions = questions.value.filter(q => q.type !== 'admin_notes')
+  
+  otherQuestions.push(newQuestion)
+  if (notesItem) otherQuestions.push(notesItem)
+  
+  questions.value = otherQuestions
 }
 
 const removeQuestion = (index) => {

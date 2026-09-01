@@ -5,16 +5,6 @@
       <!-- Sidebar Lesson List -->
       <v-col cols="12" md="4" lg="3" class="sidebar-col border-e bg-surface d-flex flex-column">
         <div class="pa-3 border-b flex-shrink-0">
-          <v-btn
-            variant="text"
-            size="x-small"
-            prepend-icon="mdi-arrow-left"
-            class="mb-1 text-none px-0"
-            color="primary"
-            @click="router.push('/dashboard')"
-          >
-            Back to Dashboard
-          </v-btn>
           <div class="text-subtitle-1 font-weight-bold text-truncate">
             {{ currentProgram?.title || 'Study Program' }}
           </div>
@@ -314,6 +304,9 @@ const markCompleted = async () => {
       status: newStatus,
       quiz_answers: isQuiz ? quizAnswersPayload.value : null
     } 
+
+    console.log("--- studyprogram [id]")
+    console.log(payload.quiz_answers)
 
     const res = await fetch(`${config.public.apiBase}/api/lessonProgress/lessons/${activeLesson.value.id}`, {
       method: 'POST',

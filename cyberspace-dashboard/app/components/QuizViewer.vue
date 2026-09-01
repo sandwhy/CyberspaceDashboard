@@ -5,7 +5,7 @@
         <div>
           <h2 class="text-subtitle-1 font-weight-bold">Interactive Quiz</h2>
           <span class="text-caption text-medium-emphasis">
-            Total Questions: {{ questions.length }}
+            Total Items: {{ questions.length }}
           </span>
         </div>
       </div>
@@ -21,16 +21,34 @@
         >
           <div class="d-flex align-center justify-space-between mb-2">
             <div class="text-body-2 font-weight-bold">
-              {{ qIndex + 1 }}. {{ q.question || 'Untitled Question' }}
+              {{ q.type === 'admin_notes' ? q.question : `${qIndex + 1}. ${q.question || 'Untitled Question'}` }}
             </div>
-            <v-chip size="x-small" variant="tonal" color="primary" class="text-uppercase">
+            <v-chip 
+              size="x-small" 
+              variant="tonal" 
+              :color="q.type === 'admin_notes' ? 'orange-darken-2' : 'primary'" 
+              class="text-uppercase"
+            >
               {{ (q.type || 'multiple_choice').replace('_', ' ') }}
             </v-chip>
           </div>
 
+          <!-- ADMIN NOTES (READ-ONLY) -->
+          <v-textarea
+            v-if="q.type === 'admin_notes'"
+            v-model="userAnswers[qIndex]"
+            label="Admin Notes"
+            variant="outlined"
+            density="compact"
+            rows="3"
+            hide-details
+            disabled
+            class="mt-2"
+          />
+
           <!-- MULTIPLE CHOICE -->
           <v-radio-group
-            v-if="q.type === 'multiple_choice' || !q.type"
+            v-else-if="q.type === 'multiple_choice' || !q.type"
             v-model="userAnswers[qIndex]"
             hide-details
             density="compact"
@@ -55,7 +73,6 @@
             density="compact"
             hide-details
             :disabled="disabled"
-
             class="mt-2"
           />
 
@@ -70,7 +87,6 @@
             rows="4"
             hide-details
             :disabled="disabled"
-
             class="mt-2"
           />
         </v-card>
@@ -117,17 +133,18 @@ const loadQuiz = (dataPayload, savedPayload) => {
     const parsed = typeof dataPayload === 'string' ? JSON.parse(dataPayload) : dataPayload
     questions.value = parsed.questions || []
 
-    // Populate userAnswers if saved answers exist from prior submissions
-    if (savedPayload) {
-      const parsedAnswers = typeof savedPayload === 'string' ? JSON.parse(savedPayload) : savedPayload
-      
-      questions.value.forEach((q, idx) => {
-        const qKey = q.id || idx
+    questions.value.forEach((q, idx) => {
+      const qKey = q.id || idx
+      if (q.type === 'admin_notes') {
+        // Pre-fill with the admin's notes from q.answer so it displays read-only
+        userAnswers.value[idx] = q.answer || ''
+      } else if (savedPayload) {
+        const parsedAnswers = typeof savedPayload === 'string' ? JSON.parse(savedPayload) : savedPayload
         if (parsedAnswers[qKey]) {
           userAnswers.value[idx] = parsedAnswers[qKey].answer
         }
-      })
-    }
+      }
+    })
   } catch (err) {
     console.warn('Failed to parse quiz JSON or saved answers:', err)
     questions.value = []
@@ -138,7 +155,6 @@ watch(() => [props.quizData, props.savedAnswers], ([newQuiz, newSaved]) => {
   loadQuiz(newQuiz, newSaved)
 }, { immediate: true, deep: true })
 
-// Automatically bundle and emit answers whenever user types or selects anything
 watch(userAnswers, () => {
   const formattedAnswers = {}
   questions.value.forEach((q, idx) => {

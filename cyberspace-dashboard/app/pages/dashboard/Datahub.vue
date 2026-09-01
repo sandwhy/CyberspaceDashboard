@@ -14,7 +14,7 @@
       />
       
       <MyAssignedLessons v-if="currentView === 'teacherAssignedLessons'" />
-      <TeacherProgressChecker v-else-if="currentView === 'lessonProgressCheck'" />
+      <TeacherProgressChecker v-else-if="currentView === 'lessonProgress'" />
       
       <DatahubTable 
         v-else-if="isTableView"
@@ -153,8 +153,8 @@
     { title: 'Programs', value: 'programs' },
     { title: 'Users', value: 'users' },
     { title: 'My Assigned Lessons', value: 'teacherAssignedLessons' },
-    { title: 'Assign Lessons (operator)', value: 'lessonsAssignment' },
-    { title: 'Lesson Progress Check (operator)', value: 'lessonProgressCheck' },
+    { title: 'Lessons (operator)', value: 'lessonsAssignment' },
+    { title: 'Lesson Progress Check (operator)', value: 'lessonProgress' },
 
   ]
 

@@ -116,29 +116,68 @@ router.post('/lessons/:lessonId', authenticateToken, (req, res) => {
 // ============================================================
 router.put('/operator/lessons/:lessonId/reset', authenticateToken, (req, res) => {
   const { lessonId } = req.params;
-  const { teacher_id, status } = req.body;
+  const { teacher_id, status, quiz_answers } = req.body;
 
-  if (!teacher_id || !status) {
-    return res.status(400).json({ success: false, message: 'teacher_id and status are required' });
+  if (!teacher_id) {
+    return res.status(400).json({ success: false, message: 'teacher_id is required' });
   }
+
+  // Format quiz answers to JSON string if provided
+  const formattedQuizAnswers = quiz_answers ? JSON.stringify(quiz_answers) : null;
+
+  // Build dynamic query depending on whether status and/or quiz_answers are provided
+  let updates = [];
+  let params = [];
+
+  if (status !== undefined && status !== null) {
+    updates.push('status = ?');
+    params.push(status);
+    
+    // If setting to completed, optionally update completed_at timestamp
+    if (status === 'completed') {
+      updates.push('completed_at = NOW()');
+    }
+  }
+
+  if (quiz_answers !== undefined) {
+    updates.push('quiz_answers = ?');
+    params.push(formattedQuizAnswers);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ success: false, message: 'No fields to update' });
+  }
+
+  params.push(teacher_id, lessonId);
 
   const query = `
     UPDATE teacher_lesson_progress 
-    SET status = ? 
+    SET ${updates.join(', ')} 
     WHERE teacher_id = ? AND lesson_id = ?
   `;
 
-  db.query(query, [status, teacher_id, lessonId], (err, result) => {
+  db.query(query, params, (err, result) => {
     if (err) {
-      console.error('Database error updating lesson status:', err);
+      console.error('Database error updating lesson status/notes:', err);
       return res.status(500).json({ success: false, message: 'Database error', error: err });
     }
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Progress record not found' });
+      // If no row exists yet, insert a default record so notes aren't lost
+      const insertQuery = `
+        INSERT INTO teacher_lesson_progress (teacher_id, lesson_id, status, quiz_answers)
+        VALUES (?, ?, ?, ?)
+      `;
+      db.query(insertQuery, [teacher_id, lessonId, status || 'in_progress', formattedQuizAnswers], (insertErr) => {
+        if (insertErr) {
+          return res.status(500).json({ success: false, message: 'Failed to create progress record', error: insertErr });
+        }
+        return res.json({ success: true, message: 'Progress and notes created successfully' });
+      });
+      return;
     }
 
-    res.json({ success: true, message: 'Status updated successfully' });
+    res.json({ success: true, message: 'Status and notes updated successfully' });
   });
 });
 

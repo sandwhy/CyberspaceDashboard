@@ -63,18 +63,17 @@ router.get('/', authenticateToken, (req, res) => {
 // ============================================================
 // 2. POST /api/lessons
 // ============================================================
-router.post('/', authenticateToken, upload.single('pdf'), (req, res) => {  // Role check: Only admins/operators can create lessons
+router.post('/', authenticateToken, upload.single('pdf'), (req, res) => {  
     if (['teacher'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Unauthorized: Teachers cannot create lessons' });
     }
 
-    const { program_id, title, type, data, sequence_order, is_required, lesson_status } = req.body;
+    const { program_id, title, type, data, sequence_order, is_required } = req.body;
 
     if (!title || !program_id) {
         return res.status(400).json({ message: 'title and program_id are required' });
     }
 
-    // Determine stored data value (either the uploaded file path, or the JSON string for quizzes)
     let lessonData = data || null;
     if (req.file) {
         lessonData = `/uploads/pdf/${req.file.filename}`;

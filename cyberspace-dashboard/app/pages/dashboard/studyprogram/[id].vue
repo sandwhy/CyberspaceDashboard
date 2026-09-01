@@ -117,11 +117,12 @@
               <v-card v-else-if="activeLesson.type === 'text'" variant="outlined" class="pa-4 bg-surface rounded-lg">
                 <div class="text-body-2" v-html="activeLesson.data"></div>
               </v-card>
-
+              
               <QuizViewer
                 v-else-if="activeLesson.type === 'quiz'"
                 :quiz-data="activeLesson.data"
                 :saved-answers="currentLessonSavedAnswers"
+                :disabled="activeLessonStatus !== 'in_progress'"
                 @update-answers="(answers) => quizAnswersPayload = answers"
               />
             </div>

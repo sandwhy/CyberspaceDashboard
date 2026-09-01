@@ -63,9 +63,6 @@
 
               <v-list-item-subtitle class="d-flex align-center ga-2 mt-1">
                 <span class="text-capitalize">{{ lesson.type || 'document' }}</span>
-                <v-chip size="x-small" :color="lesson.status === 'active' ? 'success' : 'grey'" variant="tonal" class="text-uppercase">
-                  {{ lesson.status || 'draft' }}
-                </v-chip>
               </v-list-item-subtitle>
             </v-list-item>
 
@@ -99,19 +96,6 @@
             class="mb-2"
           />
 
-          <v-select
-            v-model="activeLesson.status"
-            :items="[
-              { title: 'Draft', value: 'draft' },
-              { title: 'Active', value: 'active' },
-              { title: 'Inactive', value: 'inactive' }
-            ]"
-            label="Lesson Status *"
-            variant="outlined"
-            density="compact"
-            class="mb-2"
-          />
-
           <v-text-field
             v-model.number="activeLesson.sequence_order"
             type="number"
@@ -121,15 +105,16 @@
             class="mb-2"
           />
 
-          <v-checkbox
-            v-model="activeLesson.is_required"
-            :true-value="1"
-            :false-value="0"
-            label="Required for Completion"
-            color="primary"
-            density="compact"
-            hide-details
-          />
+          <v-btn
+            block
+            color="error"
+            variant="outlined"
+            prepend-icon="mdi-delete-outline"
+            class="mt-4"
+            @click="confirmDeleteLesson"
+          >
+            Delete Lesson
+          </v-btn>
         </div>
 
         <div class="pa-4 bg-surface mt-auto">
@@ -206,6 +191,19 @@
       </v-col>
 
     </v-row>
+
+    <!-- Delete Lesson Confirmation Dialog -->
+    <v-dialog v-model="deleteLessonDialog" max-width="400px">
+      <v-card class="pa-4">
+        <v-card-title class="text-h6 font-weight-bold">Delete Lesson?</v-card-title>
+        <v-card-text>Are you sure you want to delete this lesson? This action cannot be undone.</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="grey" variant="text" @click="deleteLessonDialog = false">Cancel</v-btn>
+          <v-btn color="error" variant="flat" @click="executeDeleteLesson">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -226,6 +224,7 @@ const filteredLessons = ref([])
 const pdfFile = ref(null)
 const isLoadingLessons = ref(false)
 const isSaving = ref(false)
+const deleteLessonDialog = ref(false)
 
 const selectedProgram = computed(() => {
   return dataStore.programs.find(p => p.id === selectedProgramId.value) || null
@@ -262,9 +261,6 @@ const onProgramChange = (programId) => {
 const saveProgramStatus = async (newStatus) => {
   if (!selectedProgramId.value) return
   const token = useCookie('token').value
-  console.log('--- createlessons saveprogramstatus')
-  console.log(selectedProgram.value)
-  console.log(selectedProgram.value.id)
   try {
     const response = await fetch(`${config.public.apiBase}/api/programs/${selectedProgram.value.id}`, {
       method: 'PUT',
@@ -297,14 +293,45 @@ const quickCreateNext = () => {
     title: `Lesson ${nextOrder}`,
     type: 'document',
     data: '',
-    sequence_order: nextOrder,
-    is_required: 1,
-    status: 'draft'
+    sequence_order: nextOrder
   }
 
   filteredLessons.value.push(newLesson)
   activeLessonIndex.value = filteredLessons.value.length - 1
   pdfFile.value = null
+}
+
+const confirmDeleteLesson = () => {
+  if (!activeLesson.value) return
+  deleteLessonDialog.value = true
+}
+
+const executeDeleteLesson = async () => {
+  if (!activeLesson.value) return
+  const token = useCookie('token').value
+  try {
+    if (activeLesson.value.id) {
+      const response = await fetch(`${config.public.apiBase}/api/lessons/${activeLesson.value.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Delete failed')
+    }
+
+    const index = activeLessonIndex.value
+    filteredLessons.value.splice(index, 1)
+    deleteLessonDialog.value = false
+
+    if (filteredLessons.value.length > 0) {
+      activeLessonIndex.value = Math.max(0, index - 1)
+    } else {
+      activeLessonIndex.value = 0
+    }
+    alert('Lesson deleted successfully!')
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
 }
 
 const saveLesson = async () => {
@@ -318,8 +345,6 @@ const saveLesson = async () => {
     formData.append('title', activeLesson.value.title)
     formData.append('type', activeLesson.value.type || 'document')
     formData.append('sequence_order', activeLesson.value.sequence_order || 1)
-    formData.append('is_required', activeLesson.value.is_required ? 1 : 0)
-    formData.append('status', activeLesson.value.status || 'draft')
 
     if (activeLesson.value.type === 'document' && pdfFile.value) {
       formData.append('pdf', pdfFile.value)

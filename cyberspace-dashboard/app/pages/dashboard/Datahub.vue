@@ -185,6 +185,7 @@
       { title: 'Id', key: 'id', align: 'start' },
       { title: 'Id - Teacher', key: 'username', align: 'start' },
       { title: 'Role', key: 'role_name', align: 'start' },
+      { title: 'Status', key: 'status', align: 'center' },
       { key: 'assigned_teachers', title: 'Assigned Teachers', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
     ],

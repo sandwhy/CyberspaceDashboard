@@ -43,13 +43,29 @@
       <v-divider></v-divider>
 
       <v-card-actions class="pa-4">
+        <!-- ================================================================= -->
+        <!-- DEVELOPER NOTE: If you want to disable an inactive user           -->
+        <!-- (prevent reactivation), delete this block.                        -->
+        <!-- ================================================================= -->
         <v-btn 
+          v-if="localUser.status === 'inactive'"
+          color="success" 
+          variant="text" 
+          prepend-icon="mdi-account-check-outline"
+          @click="reactivateUser"
+        >
+          Reactivate User
+        </v-btn>
+        <!-- ================================================================= -->
+
+        <v-btn 
+          v-else
           color="error" 
           variant="text" 
-          prepend-icon="mdi-account-remove-outline"
+          prepend-icon="mdi-account-off-outline"
           @click="deleteConfirmDialog = true"
         >
-          Delete User
+          Deactivate User
         </v-btn>
         
         <v-spacer></v-spacer>
@@ -63,15 +79,15 @@
 
     <v-dialog v-model="deleteConfirmDialog" max-width="400">
       <v-card class="rounded-lg pa-4">
-        <v-card-title class="text-h6 text-error">Permanently Delete?</v-card-title>
+        <v-card-title class="text-h6 text-error">Deactivate User?</v-card-title>
         <v-card-text>
-          Are you sure you want to delete <b>{{ localUser.username }}</b>? 
-          This will revoke their access immediately. This action is permanent.
+          Are you sure you want to deactivate <b>{{ localUser.username }}</b>? 
+          This will revoke their access immediately.
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="deleteConfirmDialog = false">Cancel</v-btn>
-          <v-btn color="error" variant="flat" @click="remove">Confirm Delete</v-btn>
+          <v-btn color="error" variant="flat" @click="remove">Confirm Deactivation</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -79,6 +95,8 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue'
+
 const props = defineProps({
   modelValue: Boolean,
   userData: Object
@@ -86,11 +104,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'saved', 'deleted'])
 
-// 1. State
 const deleteConfirmDialog = ref(false)
 const localUser = ref({ ...props.userData })
 
-// Role options matching your DB IDs
 const roles = [
   { title: 'Operator', value: 1 },
   { title: 'Admin', value: 2 },
@@ -98,7 +114,6 @@ const roles = [
   { title: 'Unregistered', value: 4 }
 ]
 
-// 2. Sync Logic
 const showDialog = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val)
@@ -108,7 +123,6 @@ watch(() => props.userData, (newVal) => {
   localUser.value = { ...newVal }
 }, { deep: true })
 
-// 3. API Actions
 const save = async () => {
   const config = useRuntimeConfig()
   const token = useCookie('token').value
@@ -120,7 +134,10 @@ const save = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ role_id: localUser.value.role_name })
+      body: JSON.stringify({ 
+        role_id: localUser.value.role_name,
+        status: localUser.value.status 
+      })
     })
 
     if (res.ok) {
@@ -129,6 +146,33 @@ const save = async () => {
     }
   } catch (err) {
     console.error("User Update Error:", err)
+  }
+}
+
+// DEVELOPER NOTE: Part of the reactivation block
+const reactivateUser = async () => {
+  const config = useRuntimeConfig()
+  const token = useCookie('token').value
+
+  try {
+    const res = await fetch(`${config.public.apiBase}/api/users/${localUser.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ 
+        role_id: localUser.value.role_name,
+        status: 'active' 
+      })
+    })
+
+    if (res.ok) {
+      emit('saved')
+      showDialog.value = false
+    }
+  } catch (err) {
+    console.error("User Reactivation Error:", err)
   }
 }
 
@@ -148,7 +192,7 @@ const remove = async () => {
       showDialog.value = false
     }
   } catch (err) {
-    console.error("User Delete Error:", err)
+    console.error("User Deactivation Error:", err)
   }
 }
 </script>

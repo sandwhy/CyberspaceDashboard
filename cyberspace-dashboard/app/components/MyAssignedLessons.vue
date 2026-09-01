@@ -78,7 +78,7 @@
             </v-chip>
           </template>
 
-          <!-- Actions Column: Do Lessons Button with Prerequisite Lock -->
+          <!-- Actions Column: Do Lessons Button with Prerequisite & Status Locks -->
           <template v-slot:item.actions="{ item }">
             <v-btn
               v-if="item.isLocked"
@@ -88,7 +88,16 @@
               prepend-icon="mdi-lock"
               disabled
             >
-              Locked (Complete Previous)
+              Locked (Complete Previous Active)
+            </v-btn>
+            <v-btn
+              v-else-if="item.lesson_status === 'inactive'"
+              color="warning"
+              variant="outlined"
+              size="small"
+              disabled
+            >
+              Inactive Program
             </v-btn>
             <v-btn
               v-else
@@ -97,10 +106,9 @@
               size="small"
               prepend-icon="mdi-book-open-page-variant"
               class="font-weight-bold text-none"
-              :disabled="item.lesson_status === 'inactive'"
               @click="goToStudyProgram(item.id)"
             >
-              {{ item.lesson_status === 'inactive' ? 'Inactive Program' : 'Do Lessons' }}
+              Do Lessons
             </v-btn>
           </template>
         </v-data-table>
@@ -141,7 +149,7 @@ const fetchAssignedPrograms = async () => {
   try {
     const token = useCookie('token').value
     
-    // 1. Fetch assignments (already sorted by sequence from backend)
+    // 1. Fetch assignments
     const res = await fetch(`${config.public.apiBase}/api/lessonsAssignment/my-assignments`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -155,17 +163,33 @@ const fetchAssignedPrograms = async () => {
     const certData = await certRes.json()
     const certificates = certData.data || []
 
-    // 3. Map and check linear sequence locks
+    // 3. Map records and check against the nearest preceding ACTIVE program
     const mappedRecords = records.map((prog, index, arr) => {
       const matchingCert = certificates.find(c => Number(c.program_id) === Number(prog.id))
 
-      // Linear prerequisite check:
-      // Program is locked if it is not the first item AND the previous program lacks an issued certificate.
       let isLocked = false
+      let lockReason = ''
+
       if (index > 0) {
-        const prevProg = arr[index - 1]
-        const prevHasCert = certificates.some(c => Number(c.program_id) === Number(prevProg.id))
-        isLocked = !prevHasCert
+        // Find the nearest preceding ACTIVE program, skipping inactive ones
+        let prevActiveProg = null
+        for (let i = index - 1; i >= 0; i--) {
+          if (arr[i].lesson_status === 'active') {
+            prevActiveProg = arr[i]
+            break
+          }
+        }
+
+        // If an active predecessor exists, check if it's completed or has a certificate
+        if (prevActiveProg) {
+          const prevHasCert = certificates.some(c => Number(c.program_id) === Number(prevActiveProg.id))
+          const prevIsCompleted = Boolean(prevActiveProg.is_completed)
+
+          if (!prevHasCert && !prevIsCompleted) {
+            isLocked = true
+            lockReason = 'Complete previous active program'
+          }
+        }
       }
 
       return {
@@ -176,6 +200,7 @@ const fetchAssignedPrograms = async () => {
         lesson_status: prog.lesson_status || 'active',
         isCompleted: Boolean(prog.is_completed),
         isLocked: isLocked,
+        lockReason: lockReason,
         certificateIssuedAt: matchingCert ? matchingCert.issued_at : null,
         certificateCode: matchingCert ? matchingCert.certificate_code : null
       }

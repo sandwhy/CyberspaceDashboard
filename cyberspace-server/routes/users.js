@@ -4,7 +4,7 @@ const db                = require('../db');
 const authenticateToken = require('../mdw/auth');
 
 // ============================================================
-// 1. GET /api/users - Get users with role, notes, and assigned programs
+// 1. GET /api/users - Get users with role, notes, status, and assigned programs
 // ============================================================
 router.get('/', authenticateToken, (req, res) => {
     const query = ` 
@@ -13,6 +13,7 @@ router.get('/', authenticateToken, (req, res) => {
             u.username, 
             r.name as role_name, 
             u.notes,
+            u.status,
             (
                 SELECT GROUP_CONCAT(p.title ORDER BY tpa.sequence SEPARATOR ', ')
                 FROM teacher_program_assignments tpa
@@ -29,13 +30,30 @@ router.get('/', authenticateToken, (req, res) => {
 });
 
 // ============================================================
+// 2. PUT /api/users/:id - Update user role, notes, and status
+// ============================================================
+router.put('/:id', authenticateToken, (req, res) => {
+    const { role_id, notes, status } = req.body;
+    const userId = req.params.id;
+    
+    const query = 'UPDATE users SET role_id = ?, notes = ?, status = ? WHERE id = ?';
+    
+    db.query(query, [role_id, notes || null, status || 'active', userId], (err, result) => {
+        if (err) return res.status(500).json({ success: false, message: 'Failed to update user' });
+        if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'User not found' });
+        
+        res.json({ success: true, message: 'User updated successfully' });
+    });
+});
+
+// ============================================================
 // 2. PUT /api/users/:id - Update user role and notes
 // ============================================================
 router.put('/:id', authenticateToken, (req, res) => {
-    const { role_id, notes } = req.body;
+    const { role_id, notes, status } = req.body;
     const userId = req.params.id;
     
-    const query = 'UPDATE users SET role_id = ?, notes = ? WHERE id = ?';
+    const query = 'UPDATE users SET role_id = ?, notes = ? status=? WHERE id = ?';
     
     db.query(query, [role_id, notes || null, userId], (err, result) => {
         if (err) return res.status(500).json({ success: false, message: 'Failed to update user' });
@@ -46,17 +64,17 @@ router.put('/:id', authenticateToken, (req, res) => {
 });
 
 // ============================================================
-// 3. DELETE /api/users/:id - Remove user account
+// 3. DELETE (Deactivate): Mark user account as inactive
 // ============================================================
 router.delete('/:id', authenticateToken, (req, res) => {
     const userId = req.params.id;
-    const query = 'DELETE FROM users WHERE id = ?';
+    const query = "UPDATE users SET status = 'inactive' WHERE id = ?";
 
     db.query(query, [userId], (err, result) => {
-        if (err) return res.status(500).json({ success: false, message: 'Failed to delete user' });
+        if (err) return res.status(500).json({ success: false, message: 'Failed to deactivate user' });
         if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'User not found' });
 
-        res.json({ success: true, message: 'User deleted successfully' });
+        res.json({ success: true, message: 'User deactivated successfully' });
     });
 });
 
